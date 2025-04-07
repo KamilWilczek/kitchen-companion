@@ -1,0 +1,20 @@
+# Mobile App (React Native / Expo)
+mobile-app/node_modules/
+mobile-app/.expo/
+mobile-app/.expo-shared/
+mobile-app/*.expo
+mobile-app/.env*
+
+# Backend (FastAPI / Python)
+backend-api/venv/
+backend-api/__pycache__/
+backend-api/*.py[cod]
+backend-api/.env*
+
+# Common
+.DS_Store
+Thumbs.db
+*.log
+*.sqlite3
+.vscode/
+__pycache__/

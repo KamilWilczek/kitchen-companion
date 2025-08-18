@@ -7,8 +7,6 @@ from app.schemas.recipe import RecipeOut, RecipeIn
 
 router = APIRouter()
 
-recipes: List[RecipeOut] = []
-
 
 def find_index(recipe_id: str) -> int:
     for i, r in enumerate(recipes):

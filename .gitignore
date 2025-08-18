@@ -4,6 +4,7 @@ mobile-app/.expo/
 mobile-app/.expo-shared/
 mobile-app/*.expo
 mobile-app/.env*
+mobile-app/expo-env.d.ts
 
 # Backend (FastAPI / Python)
 backend-api/venv/

@@ -9,11 +9,10 @@ module.exports = function (api) {
         allowUndefined: true,
       }],
       ['module-resolver', {
-        alias: {
-          "@": "./"
-        },
-        extensions: [".js", ".jsx", ".ts", ".tsx", ".json"]
-      }]
-    ]
+        alias: { '@app': './app' },
+        extensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],
+      }],
+      'react-native-reanimated/plugin',
+    ],
   };
 };

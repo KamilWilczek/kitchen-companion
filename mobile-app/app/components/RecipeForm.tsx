@@ -113,6 +113,6 @@ const s = StyleSheet.create({
   iconBtn: { paddingHorizontal: 10, paddingVertical: 8 }, icon: { fontSize: 18 },
   button: { backgroundColor: '#111827', paddingVertical: 14, borderRadius: 10, alignItems: 'center' },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  ghost: { backgroundColor: '#f3f4f6' },
+  ghost: { backgroundColor: '#31382f' },
   disabled: { opacity: 0.5 },
 });

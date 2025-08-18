@@ -19,3 +19,4 @@ Thumbs.db
 *.sqlite3
 .vscode/
 __pycache__/
+ideas.txt

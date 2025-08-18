@@ -1,9 +1,10 @@
 from fastapi import HTTPException, Body, APIRouter
-from typing import List
+from typing import List, Dict, Any
 from uuid import uuid4, UUID
 
-from app.core.db import shopping_list
+from app.core.db import shopping_list, recipes
 from app.schemas.shopping_item import ShoppingItemIn, ShoppingItemOut
+from app.routers import find_index
 
 router = APIRouter()
 
@@ -73,3 +74,23 @@ def clear_list(clear_checked: bool = False):
         shopping_list[:] = [i for i in shopping_list if not i.checked]
     else:
         shopping_list.clear()
+
+
+@router.post("/shopping-list/from-recipe/{recipe_id}", response_model=List[ShoppingItemOut])
+def add_from_recipe(recipe_id: str):
+    idx = find_index(recipe_id)
+    if idx == -1:
+        raise HTTPException(status_code=404, detail="Recipe not found")
+
+    added: List[Dict[str, Any]] = []
+    for ing in recipes[idx]["ingredients"]:
+        created = add_item(
+            ShoppingItemIn(
+                name=ing["name"],
+                quantity=ing["quantity"],
+                unit=ing["unit"],
+                recipe_id=recipe_id,
+            )
+        )
+        added.append(created)
+    return added

@@ -1,22 +1,45 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, FlatList, StyleSheet, Alert, Platform, KeyboardAvoidingView } from 'react-native';
-import type { Ingredient, RecipeIn } from 'api/types';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TextInput, Pressable, FlatList, StyleSheet, Alert, Platform, KeyboardAvoidingView, ActivityIndicator, ScrollView } from 'react-native';
+import { listTags } from 'api/tags';
+import type { Ingredient, RecipeIn, TagOut } from 'api/types';
 
+type RecipeFormInitial = Partial<RecipeIn> & { tags?: TagOut[] };
 type Props = {
-  initial?: Partial<RecipeIn>;
+  initial?: Partial<RecipeFormInitial>;
   submitLabel: string;
   onSubmit: (recipe: RecipeIn) => Promise<void> | void;
 };
 
+
+
 export default function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
   const [title, setTitle] = useState(initial?.title ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
+  const [source, setSource] = useState(initial?.source ?? '');
   const [ingredients, setIngredients] = useState<Ingredient[]>(
     initial?.ingredients && initial.ingredients.length
       ? initial.ingredients
       : [{ name: '', quantity: 0, unit: '' }]
   );
+
+  const [allTags, setAllTags] = useState<TagOut[] | null>(null);
+  const initialTagIds: string[] = (initial?.tag_ids ?? (initial?.tags ? initial.tags.map(t => t.id) : []));
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>(initialTagIds);
+
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const tags = await listTags();
+        if (mounted) setAllTags(tags);
+      } catch (e) {
+        if (mounted) setAllTags([]);
+      }
+    })();
+    return () => { mounted = false; }
+  }, []);
 
   const canSave = title.trim() && ingredients.every(i => i.name.trim());
 
@@ -24,6 +47,8 @@ export default function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
     setIngredients(prev => prev.map((row, idx) => (idx === i ? { ...row, ...patch } : row)));
   const addRow = () => setIngredients(prev => [...prev, { name: '', quantity: 0, unit: '' }]);
   const removeRow = (i: number) => setIngredients(prev => (prev.length > 1 ? prev.filter((_, idx) => idx !== i) : prev));
+
+  const toggleTag = (id: string) => setSelectedTagIds(prev => (prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]));
 
   const handleSubmit = async () => {
     if (!canSave) {
@@ -35,11 +60,13 @@ export default function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
       const payload: RecipeIn = {
         title: title.trim(),
         description: description.trim(),
+        source: source.trim() || undefined,
         ingredients: ingredients.map(i => ({
           name: i.name.trim(),
           quantity: Number.isFinite(i.quantity) ? i.quantity : 0,
           unit: i.unit.trim(),
         })),
+        tag_ids: selectedTagIds,
       };
       await onSubmit(payload);
     } finally {
@@ -58,6 +85,11 @@ export default function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
         <View style={{ gap: 8 }}>
           <Text style={s.label}>Description</Text>
           <TextInput style={[s.input, { minHeight: 80 }]} value={description} onChangeText={setDescription} multiline />
+        </View>
+
+        <View style={{ gap: 8 }}>
+          <Text style={s.label}>Source (URL or book)</Text>
+          <TextInput style={[s.input, { minHeight: 80 }]} value={source} onChangeText={setSource} placeholder="https://… or 'Cookbook, p. 42'" />
         </View>
 
         <View style={{ gap: 8 }}>
@@ -97,6 +129,26 @@ export default function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
           />
         </View>
 
+        <View style={{ gap:8 }}>
+          <Text style={s.label}>Tags</Text>
+            {!allTags ? (
+              <ActivityIndicator />
+            ) : allTags.length === 0 ? (
+              <Text style={{ color: '#6b7280' }}>No tags yet. Create some in the Tags screen.</Text>
+            ) : (
+              <View style={s.tagsWrap}>
+                {allTags.map(tag => {
+                  const active = selectedTagIds.includes(tag.id);
+                  return (
+                    <Pressable key={tag.id} onPress={() => toggleTag(tag.id)} style={[s.tag, active && s.tagActive]}>
+                      <Text style={[s.tagText, active && s.tagTextActive]}>{tag.name}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
+        </View>
+
         <Pressable onPress={handleSubmit} disabled={!canSave || saving} style={[s.button, (!canSave || saving) && s.disabled]}>
           <Text style={s.buttonText}>{saving ? 'Saving…' : submitLabel}</Text>
         </Pressable>
@@ -115,4 +167,9 @@ const s = StyleSheet.create({
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   ghost: { backgroundColor: '#31382f' },
   disabled: { opacity: 0.5 },
+  tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  tag: { borderWidth: 1, borderColor: '#d1d5db', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999 },
+  tagActive: { backgroundColor: '#111827', borderColor: '#111827' },
+  tagText: { color: '#111827' },
+  tagTextActive: { color: '#fff' },
 });

@@ -1,53 +1,76 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
+from sqlalchemy import select
 from typing import List
-from uuid import uuid4
 
-from app.core.db import recipes, tags
+from app.core.db import get_db
+from app.models.recipe import Recipe, Ingredient
+from app.models.tag import Tag
 from app.schemas.recipe import RecipeOut, RecipeIn
 
 router = APIRouter()
 
+# TODO: change to real user later
+DEMO_USER_ID = "demo-user"
 
-def find_index(recipe_id: str) -> int:
-    for i, r in enumerate(recipes):
-        if r["id"] == recipe_id:
-            return i
-    return -1
 
 @router.get("/", response_model=List[RecipeOut])
-def get_recipes():
-    enriched = []
-    for r in recipes:
-        r_tags = [t for t in tags if t["id"] in r.get("tag_ids", [])]
-        enriched.append({**r, "tags": r_tags})
-    return enriched
+def get_recipes(db: Session = Depends(get_db)):
 
+    return db.scalars(select(Recipe)).all()
 
 @router.post("/", response_model=RecipeOut)
-def add_recipe(recipe: RecipeIn):
-    new_recipe = recipe.model_dump()
-    new_recipe["id"] = str(uuid4())
-    recipes.append(new_recipe)
+def add_recipe(recipe_in: RecipeIn, db: Session = Depends(get_db)):
+    recipe = Recipe(
+        user_id=DEMO_USER_ID,
+        title=recipe_in.title,
+        description=recipe_in.description,
+        source=recipe_in.source,
+    )
 
-    r_tags = [t for t in tags if t["id"] in new_recipe.get("tag_ids", [])]
-    return {**new_recipe, "tags": r_tags}
+    recipe.ingredients = [
+        Ingredient(name=ing.name, quantity=ing.quantity, unit=ing.unit)
+        for ing in recipe_in.ingredients
+    ]
+
+    if recipe_in.tag_ids:
+        recipe.tags = db.scalars(select(Tag).where(Tag.id.in_(recipe_in.tag_ids))).all()
+
+    db.add(recipe)
+    db.commit()
+    db.refresh(recipe)
+    return recipe
 
 @router.put("/{recipe_id}", response_model=RecipeOut)
-def update_recipe(recipe_id: str, payload: RecipeIn):
-    idx = next((i for i, r in enumerate(recipes) if r["id"] == recipe_id), -1)
-    if idx == -1:
+def update_recipe(recipe_id: str, recipe_in: RecipeIn, db: Session = Depends(get_db)):
+    recipe = db.get(Recipe, recipe_id)
+    if not recipe:
         raise HTTPException(status_code=404, detail="Recipe not found")
 
-    updated = {**payload.model_dump(), "id": recipe_id}
-    recipes[idx] = updated
+    recipe.title = recipe_in.title
+    recipe.description = recipe_in.description
+    recipe.source = recipe_in.source
 
-    r_tags = [t for t in tags if t["id"] in updated.get("tag_ids", [])]
-    return {**updated, "tags": r_tags}
+    recipe.ingredients.clear()
+    recipe.ingredients.extend(
+        Ingredient(name=ing.name, quantity=ing.quantity, unit=ing.unit)
+        for ing in recipe_in.ingredients
+    )
+
+    if recipe_in.tag_ids:
+        recipe.tags = db.scalars(select(Tag).where(Tag.id.in_(recipe_in.tag_ids))).all()
+    else:
+        recipe.tags = []
+
+    db.commit()
+    db.refresh(recipe)
+    return recipe
 
 @router.delete("/{recipe_id}", status_code=204)
-def delete_recipe(recipe_id: str):
-    idx = find_index(recipe_id)
-    if idx == -1:
+def delete_recipe(recipe_id: str, db: Session = Depends(get_db)):
+    recipe = db.get(Recipe, recipe_id)
+    if not recipe:
         raise HTTPException(status_code=404, detail="Recipe not found")
-    recipes.pop(idx)
-    return
+    db.delete(recipe)
+    db.commit()
+    return None

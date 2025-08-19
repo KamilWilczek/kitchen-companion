@@ -5,3 +5,6 @@ class TagIn(BaseModel):
 
 class TagOut(TagIn):
     id: str
+
+    class Config:
+        from_attributes = True

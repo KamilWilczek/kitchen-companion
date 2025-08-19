@@ -13,6 +13,9 @@ class ShoppingItemOut(ShoppingItemIn):
     id: UUID
     checked: bool = False
 
+    class Config:
+        from_attributes = True
+
 class ShoppingItemUpdate(BaseModel):
     name: Optional[str] = None
     unit: Optional[str] = None

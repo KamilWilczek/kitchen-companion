@@ -1,9 +1,18 @@
 from typing import List
 
-from app.schemas.recipe import RecipeOut
-from app.schemas.shopping_item import ShoppingItemOut
-from app.schemas.tag import TagOut
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from app.core.config import settings
 
-recipes: List[RecipeOut] = []
-tags: List[TagOut] = []
-shopping_list: List[ShoppingItemOut] = []
+engine = create_engine(
+    settings.DATABASE_URL,
+    connect_args={"check_same_thread": False} if settings.DATABASE_URL.startswith("sqlite") else {}
+)
+SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

@@ -9,6 +9,9 @@ class Ingredient(BaseModel):
     quantity: float
     unit: str
 
+    class Config:
+        from_attributes = True
+
 class RecipeIn(BaseModel):
     title: str
     description: str
@@ -19,3 +22,6 @@ class RecipeIn(BaseModel):
 class RecipeOut(RecipeIn):
     id: str
     tags: List[TagOut]
+
+    class Config:
+        from_attributes = True

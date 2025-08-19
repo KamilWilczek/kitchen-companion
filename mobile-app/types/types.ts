@@ -21,3 +21,15 @@ export interface RecipeOut extends RecipeIn {
     id: string;
     tags: TagOut[];
   }
+
+export interface ShoppingItemIn {
+  name: string;
+  quantity: number;
+  unit: string;
+  recipe_id?: string;
+}
+
+export interface ShoppingItemOut extends ShoppingItemIn {
+  id: string;
+  checked: boolean;
+}

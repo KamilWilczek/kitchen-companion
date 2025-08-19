@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, Pressable, FlatList, StyleSheet, Alert, Platform, KeyboardAvoidingView, ActivityIndicator, ScrollView } from 'react-native';
 import { listTags } from 'api/tags';
-import type { Ingredient, RecipeIn, TagOut } from 'api/types';
+import type { Ingredient, RecipeIn, TagOut } from 'types/types';
 
 type RecipeFormInitial = Partial<RecipeIn> & { tags?: TagOut[] };
 type Props = {

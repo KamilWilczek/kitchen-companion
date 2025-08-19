@@ -14,7 +14,7 @@ def find_index(recipe_id: str) -> int:
             return i
     return -1
 
-@router.get("/recipes", response_model=List[RecipeOut])
+@router.get("/", response_model=List[RecipeOut])
 def get_recipes():
     enriched = []
     for r in recipes:
@@ -23,7 +23,7 @@ def get_recipes():
     return enriched
 
 
-@router.post("/recipes", response_model=RecipeOut)
+@router.post("/", response_model=RecipeOut)
 def add_recipe(recipe: RecipeIn):
     new_recipe = recipe.model_dump()
     new_recipe["id"] = str(uuid4())
@@ -32,7 +32,7 @@ def add_recipe(recipe: RecipeIn):
     r_tags = [t for t in tags if t["id"] in new_recipe.get("tag_ids", [])]
     return {**new_recipe, "tags": r_tags}
 
-@router.put("/recipes/{recipe_id}", response_model=RecipeOut)
+@router.put("/{recipe_id}", response_model=RecipeOut)
 def update_recipe(recipe_id: str, payload: RecipeIn):
     idx = next((i for i, r in enumerate(recipes) if r["id"] == recipe_id), -1)
     if idx == -1:
@@ -44,7 +44,7 @@ def update_recipe(recipe_id: str, payload: RecipeIn):
     r_tags = [t for t in tags if t["id"] in updated.get("tag_ids", [])]
     return {**updated, "tags": r_tags}
 
-@router.delete("/recipes/{recipe_id}", status_code=204)
+@router.delete("/{recipe_id}", status_code=204)
 def delete_recipe(recipe_id: str):
     idx = find_index(recipe_id)
     if idx == -1:

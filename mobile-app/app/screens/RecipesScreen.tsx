@@ -5,7 +5,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from 'App';
 
 import { fetchRecipes, deleteRecipe } from 'api/recipes';
-import type { RecipeOut } from 'api/types';
+import type { RecipeOut } from 'types/types';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'Recipes'>;
 

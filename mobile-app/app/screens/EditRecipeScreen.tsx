@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import RecipeForm from '@app/components/RecipeForm';
 import { updateRecipe } from 'api/recipes';
-import type { RecipeOut } from 'api/types';
+import type { RecipeOut } from 'types/types';
 import type { RootStackParamList } from 'App';
 
 type EditRoute = RouteProp<RootStackParamList, 'EditRecipe'>;

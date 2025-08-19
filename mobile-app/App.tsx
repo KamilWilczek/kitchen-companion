@@ -8,12 +8,14 @@ import RecipesScreen from '@app/screens/RecipesScreen';
 import NewRecipeScreen from '@app/screens/NewRecipeScreen';
 import EditRecipeScreen from '@app/screens/EditRecipeScreen';
 import TagsScreen from '@app/screens/TagsScreen';
+import ShoppingListScreen from '@app/screens/ShoppingListScreen';
 
 export type RootStackParamList = {
   Recipes: undefined;
   NewRecipe: undefined;
   EditRecipe: { recipe: any };
   Tags: undefined;
+  ShoppingList: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -39,6 +41,9 @@ export default function App() {
                 <Pressable onPress={() => navigation.navigate('Tags')}>
                   <Text style={{ fontSize: 16, paddingHorizontal: 12 }}>{'Tags'}</Text>
                 </Pressable>
+                <Pressable onPress={() => navigation.navigate('ShoppingList')}>
+                  <Text style={{ fontSize: 16, paddingHorizontal: 12 }}>{'List'}</Text>
+                </Pressable>
               </View>
             ),
           })}
@@ -50,6 +55,7 @@ export default function App() {
         />
         <Stack.Screen name="EditRecipe" component={EditRecipeScreen} options={{ title: 'Edit Recipe' }} />
         <Stack.Screen name="Tags" component={TagsScreen} options={{ title: 'Manage Tags' }} />
+        <Stack.Screen name="ShoppingList" component={ShoppingListScreen} options={{ title: 'Shopping List' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

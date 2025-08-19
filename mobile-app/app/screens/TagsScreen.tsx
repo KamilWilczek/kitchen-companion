@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, TextInput, Pressable, FlatList, Alert, StyleSheet, ActivityIndicator } from 'react-native';
 import { listTags, createTag, renameTag, deleteTag } from 'api/tags';
-import type { TagOut } from 'api/types';
+import type { TagOut } from 'types/types';
 import { useFocusEffect } from '@react-navigation/native';
 
 

@@ -9,12 +9,14 @@ class ShoppingItemIn(BaseModel):
     unit: str
     recipe_id: Optional[UUID] = None
 
+
 class ShoppingItemOut(ShoppingItemIn):
     id: UUID
     checked: bool = False
 
     class Config:
         from_attributes = True
+
 
 class ShoppingItemUpdate(BaseModel):
     name: Optional[str] = None

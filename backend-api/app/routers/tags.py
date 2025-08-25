@@ -11,9 +11,11 @@ router = APIRouter()
 
 tags: List[TagOut] = []
 
+
 @router.get("/", response_model=List[TagOut])
 def list_tags(db: Session = Depends(get_db)):
     return db.scalars(select(Tag).order_by(Tag.name.asc())).all()
+
 
 @router.post("/", response_model=TagOut)
 def create_tag(tag: TagIn, db: Session = Depends(get_db)):
@@ -31,6 +33,7 @@ def create_tag(tag: TagIn, db: Session = Depends(get_db)):
     db.refresh(row)
     return row
 
+
 @router.put("/{tag_id}", response_model=TagOut)
 def rename_tag(tag_id: str, tag: TagIn, db: Session = Depends(get_db)):
     row = db.get(Tag, tag_id)
@@ -43,12 +46,15 @@ def rename_tag(tag_id: str, tag: TagIn, db: Session = Depends(get_db)):
 
     duplicate = db.scalar(select(Tag).where(Tag.name == name, Tag.id != tag_id))
     if duplicate:
-        raise HTTPException(status_code=400, detail="Another tag with this name exists.")
+        raise HTTPException(
+            status_code=400, detail="Another tag with this name exists."
+        )
 
     row.name = name
     db.commit()
     db.refresh(row)
     return row
+
 
 @router.delete("/{tag_id}", status_code=204)
 def delete_tag(tag_id: str, db: Session = Depends(get_db)):
@@ -57,7 +63,10 @@ def delete_tag(tag_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Tag not found")
 
     if row.recipes and len(row.recipes) > 0:
-        raise HTTPException(status_code=400, detail="Cannot delete tag; it is still assigned to one or more recipes.")
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete tag; it is still assigned to one or more recipes.",
+        )
 
     db.delete(row)
     db.commit()

@@ -1,16 +1,16 @@
-from fastapi import FastAPI
-from sqlalchemy.orm import Session
 from contextlib import asynccontextmanager
-from sqlalchemy import select
-from app.core.db import get_db, SessionLocal
-from app.models.user import User
-from fastapi.middleware.cors import CORSMiddleware
 
+from app.core.db import SessionLocal
+from app.models.user import User
 from app.routers import recipe, shopping_list, tags
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import select
 
 #######
 # TODO: Remove after introducing users
 DEMO_USER_ID = "demo-user"
+
 
 def ensure_demo_user():
     with SessionLocal() as db:
@@ -18,6 +18,7 @@ def ensure_demo_user():
         if not user:
             db.add(User(id=DEMO_USER_ID, email="demo@example.com"))
             db.commit()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

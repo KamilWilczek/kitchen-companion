@@ -12,12 +12,14 @@ class Ingredient(BaseModel):
     class Config:
         from_attributes = True
 
+
 class RecipeIn(BaseModel):
     title: str
     description: str
     ingredients: List[Ingredient]
     tag_ids: List[str] = []
     source: Optional[str] = None
+
 
 class RecipeOut(RecipeIn):
     id: str

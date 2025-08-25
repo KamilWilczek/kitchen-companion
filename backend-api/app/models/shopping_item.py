@@ -11,8 +11,12 @@ class ShoppingItem(Base):
     unit: Mapped[str]
     quantity: Mapped[float]
     checked: Mapped[bool] = mapped_column(default=False)
-    recipe_id: Mapped[str | None] = mapped_column(ForeignKey("recipes.id"), default=None)
+    recipe_id: Mapped[str | None] = mapped_column(
+        ForeignKey("recipes.id"), default=None
+    )
 
     name_norm: Mapped[str]
     unit_norm: Mapped[str]
-    __table_args__ = (UniqueConstraint("user_id", "name_norm", "unit_norm", name="uq_shopping_norm"),)
+    __table_args__ = (
+        UniqueConstraint("user_id", "name_norm", "unit_norm", name="uq_shopping_norm"),
+    )

@@ -7,15 +7,21 @@ from uuid import UUID
 from app.core.db import get_db
 from app.models.shopping_item import ShoppingItem
 from app.models.recipe import Recipe
-from app.schemas.shopping_item import ShoppingItemIn, ShoppingItemOut, ShoppingItemUpdate
+from app.schemas.shopping_item import (
+    ShoppingItemIn,
+    ShoppingItemOut,
+    ShoppingItemUpdate,
+)
 
 router = APIRouter()
 
 # TODO: change to real user later
 DEMO_USER_ID = "demo-user"
 
+
 def normalize_key(name: str, unit: str) -> tuple[str, str]:
     return name.strip().lower(), unit.strip().lower()
+
 
 @router.get("/", response_model=List[ShoppingItemOut])
 def get_shopping_list(db: Session = Depends(get_db)):
@@ -24,6 +30,7 @@ def get_shopping_list(db: Session = Depends(get_db)):
     ).all()
 
     return items
+
 
 @router.post("/", response_model=ShoppingItemOut)
 def add_item(item: ShoppingItemIn, db: Session = Depends(get_db)):
@@ -41,7 +48,8 @@ def add_item(item: ShoppingItemIn, db: Session = Depends(get_db)):
         existing.quantity += item.quantity
         if not existing.recipe_id and item.recipe_id:
             existing.recipe_id = str(item.recipe_id)
-        db.commit(); db.refresh(existing)
+        db.commit()
+        db.refresh(existing)
 
         return existing
 
@@ -61,8 +69,11 @@ def add_item(item: ShoppingItemIn, db: Session = Depends(get_db)):
 
     return new_item
 
+
 @router.patch("/{item_id}", response_model=ShoppingItemOut)
-def update_item(item_id: UUID, patch: ShoppingItemUpdate = Body(...), db: Session = Depends(get_db)):
+def update_item(
+    item_id: UUID, patch: ShoppingItemUpdate = Body(...), db: Session = Depends(get_db)
+):
     item = db.get(ShoppingItem, str(item_id))
     if not item or item.user_id != DEMO_USER_ID:
         raise HTTPException(status_code=404, detail="Item not found")
@@ -86,7 +97,9 @@ def update_item(item_id: UUID, patch: ShoppingItemUpdate = Body(...), db: Sessio
     if "recipe_id" in data:
         item.recipe_id = str(data["recipe_id"]) if data["recipe_id"] else None
 
-    if ("name" in data and data["name"] is not None) or ("unit" in data and data["unit"] is not None):
+    if ("name" in data and data["name"] is not None) or (
+        "unit" in data and data["unit"] is not None
+    ):
         dup = db.scalar(
             select(ShoppingItem).where(
                 ShoppingItem.user_id == DEMO_USER_ID,
@@ -104,6 +117,7 @@ def update_item(item_id: UUID, patch: ShoppingItemUpdate = Body(...), db: Sessio
     db.refresh(item)
     return item
 
+
 @router.delete("/{item_id}", status_code=204)
 def delete_item(item_id: UUID, db: Session = Depends(get_db)):
     item = db.get(ShoppingItem, str(item_id))
@@ -113,11 +127,12 @@ def delete_item(item_id: UUID, db: Session = Depends(get_db)):
     db.commit()
     return None
 
+
 @router.delete("/", status_code=204)
 def clear_list(clear_checked: bool = False, db: Session = Depends(get_db)):
     q = select(ShoppingItem).where(ShoppingItem.user_id == DEMO_USER_ID)
     if clear_checked:
-        q = q.where(ShoppingItem.checked == True)
+        q = q.where(ShoppingItem.checked)
 
         for row in db.scalars(q).all():
             db.delete(row)
@@ -138,8 +153,10 @@ def add_from_recipe(recipe_id: str, db: Session = Depends(get_db)):
     added: list[ShoppingItemOut] = []
     for ing in recipe.ingredients:
         added_item = add_item(
-            ShoppingItemIn(name=ing.name, quantity=ing.quantity, unit=ing.unit, recipe_id=recipe_id),
-            db=db
+            ShoppingItemIn(
+                name=ing.name, quantity=ing.quantity, unit=ing.unit, recipe_id=recipe_id
+            ),
+            db=db,
         )
         added.append(added_item)
     return added

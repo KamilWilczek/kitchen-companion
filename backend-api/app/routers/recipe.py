@@ -19,6 +19,7 @@ def get_recipes(db: Session = Depends(get_db)):
 
     return db.scalars(select(Recipe)).all()
 
+
 @router.post("/", response_model=RecipeOut)
 def add_recipe(recipe_in: RecipeIn, db: Session = Depends(get_db)):
     recipe = Recipe(
@@ -40,6 +41,7 @@ def add_recipe(recipe_in: RecipeIn, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(recipe)
     return recipe
+
 
 @router.put("/{recipe_id}", response_model=RecipeOut)
 def update_recipe(recipe_id: str, recipe_in: RecipeIn, db: Session = Depends(get_db)):
@@ -65,6 +67,7 @@ def update_recipe(recipe_id: str, recipe_in: RecipeIn, db: Session = Depends(get
     db.commit()
     db.refresh(recipe)
     return recipe
+
 
 @router.delete("/{recipe_id}", status_code=204)
 def delete_recipe(recipe_id: str, db: Session = Depends(get_db)):

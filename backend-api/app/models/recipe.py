@@ -10,6 +10,7 @@ recipe_tag = Table(
     Column("tag_id", String, ForeignKey("tags.id"), primary_key=True),
 )
 
+
 class Ingredient(Base):
     __tablename__ = "ingredients"
     id: Mapped[str] = mapped_column(primary_key=True, default=uuid_str)
@@ -19,6 +20,7 @@ class Ingredient(Base):
     unit: Mapped[str]
     recipe = relationship("Recipe", back_populates="ingredients")
 
+
 class Recipe(Base):
     __tablename__ = "recipes"
     id: Mapped[str] = mapped_column(primary_key=True, default=uuid_str)
@@ -27,5 +29,7 @@ class Recipe(Base):
     description: Mapped[str] = mapped_column(default="")
     source: Mapped[str | None]
 
-    ingredients = relationship("Ingredient", cascade="all, delete-orphan", back_populates="recipe")
+    ingredients = relationship(
+        "Ingredient", cascade="all, delete-orphan", back_populates="recipe"
+    )
     tags = relationship("Tag", secondary=recipe_tag)

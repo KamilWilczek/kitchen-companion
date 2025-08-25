@@ -1,29 +1,35 @@
-from fastapi import APIRouter, HTTPException, Depends
-from sqlalchemy.orm import Session
-from sqlalchemy import select
 from typing import List
+from uuid import UUID
 
 from app.core.db import get_db
-from app.models.recipe import Recipe, Ingredient
+from app.core.deps import get_current_user
+from app.models.recipe import Ingredient, Recipe
 from app.models.tag import Tag
-from app.schemas.recipe import RecipeOut, RecipeIn
+from app.models.user import User
+from app.schemas.recipe import RecipeIn, RecipeOut
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 router = APIRouter()
 
-# TODO: change to real user later
-DEMO_USER_ID = "demo-user"
-
 
 @router.get("/", response_model=List[RecipeOut])
-def get_recipes(db: Session = Depends(get_db)):
+def get_recipes(
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+):
 
-    return db.scalars(select(Recipe)).all()
+    return db.scalars(select(Recipe).where(Recipe.user_id == current_user.id)).all()
 
 
 @router.post("/", response_model=RecipeOut)
-def add_recipe(recipe_in: RecipeIn, db: Session = Depends(get_db)):
+def add_recipe(
+    recipe_in: RecipeIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     recipe = Recipe(
-        user_id=DEMO_USER_ID,
+        user_id=current_user.id,
         title=recipe_in.title,
         description=recipe_in.description,
         source=recipe_in.source,
@@ -44,8 +50,15 @@ def add_recipe(recipe_in: RecipeIn, db: Session = Depends(get_db)):
 
 
 @router.put("/{recipe_id}", response_model=RecipeOut)
-def update_recipe(recipe_id: str, recipe_in: RecipeIn, db: Session = Depends(get_db)):
-    recipe = db.get(Recipe, recipe_id)
+def update_recipe(
+    recipe_id: UUID,
+    recipe_in: RecipeIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    recipe = db.scalar(
+        select(Recipe).where(Recipe.id == recipe_id, Recipe.user_id == current_user.id)
+    )
     if not recipe:
         raise HTTPException(status_code=404, detail="Recipe not found")
 
@@ -70,8 +83,14 @@ def update_recipe(recipe_id: str, recipe_in: RecipeIn, db: Session = Depends(get
 
 
 @router.delete("/{recipe_id}", status_code=204)
-def delete_recipe(recipe_id: str, db: Session = Depends(get_db)):
-    recipe = db.get(Recipe, recipe_id)
+def delete_recipe(
+    recipe_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    recipe = db.scalar(
+        select(Recipe).where(Recipe.id == recipe_id, Recipe.user_id == current_user.id)
+    )
     if not recipe:
         raise HTTPException(status_code=404, detail="Recipe not found")
     db.delete(recipe)

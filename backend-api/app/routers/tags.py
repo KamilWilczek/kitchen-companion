@@ -1,11 +1,14 @@
-from fastapi import HTTPException, APIRouter, Depends
-from sqlalchemy.orm import Session
-from sqlalchemy import select
 from typing import List
+from uuid import UUID
 
 from app.core.db import get_db
+from app.core.deps import get_current_user
 from app.models.tag import Tag
+from app.models.user import User
 from app.schemas.tag import TagIn, TagOut
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 router = APIRouter()
 
@@ -13,21 +16,32 @@ tags: List[TagOut] = []
 
 
 @router.get("/", response_model=List[TagOut])
-def list_tags(db: Session = Depends(get_db)):
-    return db.scalars(select(Tag).order_by(Tag.name.asc())).all()
+def list_tags(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return db.scalars(
+        select(Tag).where(Tag.user_id == current_user.id).order_by(Tag.name.asc())
+    ).all()
 
 
 @router.post("/", response_model=TagOut)
-def create_tag(tag: TagIn, db: Session = Depends(get_db)):
+def create_tag(
+    tag: TagIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     name = tag.name.strip().lower()
     if not name:
         raise HTTPException(status_code=400, detail="Tag name cannot be empty.")
 
-    existing = db.scalar(select(Tag).where(Tag.name == name))
+    existing = db.scalar(
+        select(Tag).where(Tag.user_id == current_user.id, Tag.name == name)
+    )
     if existing:
         raise HTTPException(status_code=400, detail="Tag name already exists.")
 
-    row = Tag(name=name)
+    row = Tag(name=name, user_id=current_user.id)
     db.add(row)
     db.commit()
     db.refresh(row)
@@ -35,8 +49,13 @@ def create_tag(tag: TagIn, db: Session = Depends(get_db)):
 
 
 @router.put("/{tag_id}", response_model=TagOut)
-def rename_tag(tag_id: str, tag: TagIn, db: Session = Depends(get_db)):
-    row = db.get(Tag, tag_id)
+def rename_tag(
+    tag_id: UUID,
+    tag: TagIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    row = db.scalar(select(Tag).where(Tag.id == tag_id, Tag.user_id == current_user.id))
     if not row:
         raise HTTPException(status_code=404, detail="Tag not found")
 
@@ -44,7 +63,13 @@ def rename_tag(tag_id: str, tag: TagIn, db: Session = Depends(get_db)):
     if not name:
         raise HTTPException(status_code=400, detail="Tag name cannot be empty.")
 
-    duplicate = db.scalar(select(Tag).where(Tag.name == name, Tag.id != tag_id))
+    duplicate = db.scalar(
+        select(Tag).where(
+            Tag.user_id == current_user.id,
+            Tag.name == name,
+            Tag.id != tag_id,
+        )
+    )
     if duplicate:
         raise HTTPException(
             status_code=400, detail="Another tag with this name exists."
@@ -57,8 +82,12 @@ def rename_tag(tag_id: str, tag: TagIn, db: Session = Depends(get_db)):
 
 
 @router.delete("/{tag_id}", status_code=204)
-def delete_tag(tag_id: str, db: Session = Depends(get_db)):
-    row = db.get(Tag, tag_id)
+def delete_tag(
+    tag_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    row = db.scalar(select(Tag).where(Tag.id == tag_id, Tag.user_id == current_user.id))
     if not row:
         raise HTTPException(status_code=404, detail="Tag not found")
 

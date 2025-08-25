@@ -1,6 +1,7 @@
-from pydantic import BaseModel
 from typing import Optional
 from uuid import UUID
+
+from pydantic import BaseModel
 
 
 class ShoppingItemIn(BaseModel):
@@ -23,4 +24,4 @@ class ShoppingItemUpdate(BaseModel):
     unit: Optional[str] = None
     quantity: Optional[float] = None
     checked: Optional[bool] = None
-    recipe_id: Optional[str] = None
+    recipe_id: Optional[UUID] = None

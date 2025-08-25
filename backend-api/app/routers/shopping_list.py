@@ -1,22 +1,21 @@
-from fastapi import HTTPException, Body, APIRouter, Depends
-from sqlalchemy.orm import Session
-from sqlalchemy import select
 from typing import List
 from uuid import UUID
 
 from app.core.db import get_db
-from app.models.shopping_item import ShoppingItem
+from app.core.deps import get_current_user
 from app.models.recipe import Recipe
+from app.models.shopping_item import ShoppingItem
+from app.models.user import User
 from app.schemas.shopping_item import (
     ShoppingItemIn,
     ShoppingItemOut,
     ShoppingItemUpdate,
 )
+from fastapi import APIRouter, Body, Depends, HTTPException
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 router = APIRouter()
-
-# TODO: change to real user later
-DEMO_USER_ID = "demo-user"
 
 
 def normalize_key(name: str, unit: str) -> tuple[str, str]:
@@ -24,21 +23,27 @@ def normalize_key(name: str, unit: str) -> tuple[str, str]:
 
 
 @router.get("/", response_model=List[ShoppingItemOut])
-def get_shopping_list(db: Session = Depends(get_db)):
+def get_shopping_list(
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+):
     items = db.scalars(
-        select(ShoppingItem).where(ShoppingItem.user_id == DEMO_USER_ID)
+        select(ShoppingItem).where(ShoppingItem.user_id == current_user.id)
     ).all()
 
     return items
 
 
 @router.post("/", response_model=ShoppingItemOut)
-def add_item(item: ShoppingItemIn, db: Session = Depends(get_db)):
+def add_item(
+    item: ShoppingItemIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     name_norm, unit_norm = normalize_key(item.name, item.unit)
 
     existing = db.scalar(
         select(ShoppingItem).where(
-            ShoppingItem.user_id == DEMO_USER_ID,
+            ShoppingItem.user_id == current_user.id,
             ShoppingItem.name_norm == name_norm,
             ShoppingItem.unit_norm == unit_norm,
         )
@@ -54,7 +59,7 @@ def add_item(item: ShoppingItemIn, db: Session = Depends(get_db)):
         return existing
 
     new_item = ShoppingItem(
-        user_id=DEMO_USER_ID,
+        user_id=current_user.id,
         name=item.name.strip(),
         unit=item.unit.strip(),
         quantity=item.quantity,
@@ -72,10 +77,13 @@ def add_item(item: ShoppingItemIn, db: Session = Depends(get_db)):
 
 @router.patch("/{item_id}", response_model=ShoppingItemOut)
 def update_item(
-    item_id: UUID, patch: ShoppingItemUpdate = Body(...), db: Session = Depends(get_db)
+    item_id: UUID,
+    patch: ShoppingItemUpdate = Body(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     item = db.get(ShoppingItem, str(item_id))
-    if not item or item.user_id != DEMO_USER_ID:
+    if not item or item.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Item not found")
 
     data = patch.model_dump(exclude_unset=True)
@@ -102,7 +110,7 @@ def update_item(
     ):
         dup = db.scalar(
             select(ShoppingItem).where(
-                ShoppingItem.user_id == DEMO_USER_ID,
+                ShoppingItem.user_id == current_user.id,
                 ShoppingItem.id != item.id,
                 ShoppingItem.name_norm == item.name_norm,
                 ShoppingItem.unit_norm == item.unit_norm,
@@ -119,9 +127,13 @@ def update_item(
 
 
 @router.delete("/{item_id}", status_code=204)
-def delete_item(item_id: UUID, db: Session = Depends(get_db)):
+def delete_item(
+    item_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     item = db.get(ShoppingItem, str(item_id))
-    if not item or item.user_id != DEMO_USER_ID:
+    if not item or item.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Item not found")
     db.delete(item)
     db.commit()
@@ -129,8 +141,12 @@ def delete_item(item_id: UUID, db: Session = Depends(get_db)):
 
 
 @router.delete("/", status_code=204)
-def clear_list(clear_checked: bool = False, db: Session = Depends(get_db)):
-    q = select(ShoppingItem).where(ShoppingItem.user_id == DEMO_USER_ID)
+def clear_list(
+    clear_checked: bool = False,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    q = select(ShoppingItem).where(ShoppingItem.user_id == current_user.id)
     if clear_checked:
         q = q.where(ShoppingItem.checked)
 
@@ -145,9 +161,13 @@ def clear_list(clear_checked: bool = False, db: Session = Depends(get_db)):
 
 
 @router.post("/from-recipe/{recipe_id}", response_model=List[ShoppingItemOut])
-def add_from_recipe(recipe_id: str, db: Session = Depends(get_db)):
+def add_from_recipe(
+    recipe_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     recipe = db.get(Recipe, recipe_id)
-    if not recipe or recipe.user_id != DEMO_USER_ID:
+    if not recipe or recipe.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Recipe not found")
 
     added: list[ShoppingItemOut] = []

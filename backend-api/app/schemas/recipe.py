@@ -1,7 +1,8 @@
-from pydantic import BaseModel
 from typing import List, Optional
+from uuid import UUID
 
 from app.schemas.tag import TagOut
+from pydantic import BaseModel
 
 
 class Ingredient(BaseModel):
@@ -22,7 +23,7 @@ class RecipeIn(BaseModel):
 
 
 class RecipeOut(RecipeIn):
-    id: str
+    id: UUID
     tags: List[TagOut]
 
     class Config:

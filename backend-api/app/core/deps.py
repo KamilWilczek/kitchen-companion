@@ -1,8 +1,8 @@
 from typing import Annotated
 
+from app.core.config import settings
+from app.core.db import get_db
 from app.models.user import User
-from config import settings
-from db import get_db
 from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session

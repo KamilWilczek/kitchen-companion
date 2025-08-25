@@ -2,14 +2,17 @@ import React from 'react';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { View, Text, Pressable, Alert } from 'react-native';
 import RecipeForm from '@app/components/RecipeForm';
-import { updateRecipe } from 'api/recipes';
 import type { RecipeOut, RecipeIn } from 'types/types';
 import type { RootStackParamList } from 'App';
-import { addFromRecipe } from 'api/shopping_lists';
+import { useShoppingListApi } from 'api/shopping_lists';
+import { useRecipesApi } from 'api/recipes';
+
 
 type EditRoute = RouteProp<RootStackParamList, 'EditRecipe'>;
 
 export default function EditRecipeScreen() {
+  const { updateRecipe } = useRecipesApi();
+  const { addFromRecipe } = useShoppingListApi();
   const navigation = useNavigation();
   const route = useRoute<EditRoute>();
   const recipe = route.params.recipe as RecipeOut;

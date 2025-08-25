@@ -4,8 +4,8 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from 'App';
 
-import { fetchRecipes, deleteRecipe } from 'api/recipes';
 import type { RecipeOut } from 'types/types';
+import { useRecipesApi } from 'api/recipes';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'Recipes'>;
 
@@ -14,6 +14,7 @@ export default function RecipesScreen() {
   const [recipes, setRecipes] = useState<RecipeOut[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const { fetchRecipes, deleteRecipe } = useRecipesApi();
 
 const load = async () => {
   setLoading(true);

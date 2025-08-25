@@ -1,3 +1,5 @@
+export type UUID = string;
+
 export interface Ingredient {
   name: string;
   quantity: number;
@@ -5,7 +7,7 @@ export interface Ingredient {
 }
 
 export interface TagOut {
-  id: string;
+  id: UUID;
   name: string;
 }
 
@@ -14,11 +16,11 @@ export interface RecipeIn {
   description: string;
   source?: string | null;
   ingredients: Ingredient[];
-  tag_ids: string[];
+  tag_ids?: UUID[];
 }
 
 export interface RecipeOut extends RecipeIn {
-    id: string;
+    id: UUID;
     tags: TagOut[];
   }
 
@@ -30,6 +32,6 @@ export interface ShoppingItemIn {
 }
 
 export interface ShoppingItemOut extends ShoppingItemIn {
-  id: string;
+  id: UUID;
   checked: boolean;
 }

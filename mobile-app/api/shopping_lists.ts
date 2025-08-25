@@ -1,45 +1,25 @@
-import { API_URL } from '@env';
 import type { ShoppingItemIn, ShoppingItemOut } from 'types/types';
+import { useApi } from './useApi';
 
-export async function getShoppingList(): Promise<ShoppingItemOut[]> {
-  const res = await fetch(`${API_URL}/shopping-list/`);
-  if (!res.ok) throw new Error(`GET /shopping-list/ ${res.status}`);
-  return res.json();
-}
-
-export async function addShoppingItem(item: ShoppingItemIn): Promise<ShoppingItemOut> {
-  const res = await fetch(`${API_URL}/shopping-list/`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(item),
-  });
-  if (!res.ok) throw new Error(`POST /shopping-list/ ${res.status}`);
-  return res.json();
-}
-
-export async function patchShoppingItem(id: string, patch: Partial<ShoppingItemIn> & { checked?: boolean }): Promise<ShoppingItemOut> {
-  const res = await fetch(`${API_URL}/shopping-list/${id}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(patch),
-  });
-  if (!res.ok) throw new Error(`PATCH /shopping-list/${id} ${res.status}`);
-  return res.json();
-}
-
-export async function deleteShoppingItem(id: string): Promise<void> {
-  const res = await fetch(`${API_URL}/shopping-list/${id}`, { method: 'DELETE' });
-  if (!res.ok) throw new Error(`DELETE /shopping-list/${id} ${res.status}`);
-}
-
-export async function clearShoppingList(clearChecked = false): Promise<void> {
-  const url = `${API_URL}/shopping-list/${clearChecked ? '?clear_checked=true' : ''}`;
-  const res = await fetch(url, { method: 'DELETE' });
-  if (!res.ok) throw new Error(`DELETE /shopping-list/ ${res.status}`);
-}
-
-export async function addFromRecipe(recipeId: string): Promise<ShoppingItemOut[]> {
-  const res = await fetch(`${API_URL}/shopping-list/from-recipe/${recipeId}`, { method: 'POST' });
-  if (!res.ok) throw new Error(`POST /shopping-list/from-recipe/${recipeId} ${res.status}`);
-  return res.json();
+export function useShoppingListApi() {
+  const api = useApi();
+  return {
+    getShoppingList: () => api<ShoppingItemOut[]>("/shopping-list/"),
+    addShoppingItem: (item: ShoppingItemIn) =>
+      api<ShoppingItemOut>("/shopping-list/", {
+        method: "POST",
+        body: JSON.stringify(item),
+      }),
+    patchShoppingItem: (id: string, patch: Partial<ShoppingItemIn> & { checked?: boolean }) =>
+      api<ShoppingItemOut>(`/shopping-list/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(patch),
+      }),
+    deleteShoppingItem: (id: string) =>
+      api<void>(`/shopping-list/${id}`, { method: "DELETE" }),
+    clearShoppingList: (clearChecked = false) =>
+      api<void>(`/shopping-list/${clearChecked ? '?clear_checked=true' : ''}`, { method: "DELETE" }),
+    addFromRecipe: (recipeId: string) =>
+      api<ShoppingItemOut[]>(`/shopping-list/from-recipe/${recipeId}`, { method: "POST" }),
+  };
 }

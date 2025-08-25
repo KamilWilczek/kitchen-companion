@@ -1,8 +1,8 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, TextInput, Pressable, FlatList, Alert, StyleSheet, ActivityIndicator } from 'react-native';
-import { listTags, createTag, renameTag, deleteTag } from 'api/tags';
 import type { TagOut } from 'types/types';
 import { useFocusEffect } from '@react-navigation/native';
+import { useTagsApi } from 'api/tags';
 
 
 export default function TagsScreen() {
@@ -10,6 +10,7 @@ export default function TagsScreen() {
   const [newName, setNewName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
+  const { listTags, createTag, renameTag, deleteTag } = useTagsApi();
 
   const load = async () => {
     setTags(null);

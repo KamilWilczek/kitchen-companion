@@ -1,9 +1,10 @@
 import React from 'react';
 import { useNavigation } from '@react-navigation/native';
 import RecipeForm from '@app/components/RecipeForm';
-import { createRecipe } from 'api/recipes';
+import { useRecipesApi } from 'api/recipes';
 
 export default function NewRecipeScreen() {
+  const { createRecipe } = useRecipesApi();
   const navigation = useNavigation();
   return (
     <RecipeForm

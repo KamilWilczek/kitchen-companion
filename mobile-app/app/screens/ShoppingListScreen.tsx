@@ -1,13 +1,14 @@
 import { View, Text, FlatList, StyleSheet, Pressable, TextInput, Alert, RefreshControl } from 'react-native';
 import { useState, useCallback } from 'react';
 import type { ShoppingItemOut } from 'types/types';
-import { getShoppingList, addShoppingItem, patchShoppingItem, deleteShoppingItem, clearShoppingList } from 'api/shopping_lists';
 import { useFocusEffect } from '@react-navigation/native';
+import { useShoppingListApi } from 'api/shopping_lists';
 
 export default function ShoppingListScreen() {
   const [items, setItems] = useState<ShoppingItemOut[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const { getShoppingList, addShoppingItem, patchShoppingItem, deleteShoppingItem, clearShoppingList } = useShoppingListApi();
 
   const [name, setName] = useState('');
   const [qty, setQty] = useState('1');

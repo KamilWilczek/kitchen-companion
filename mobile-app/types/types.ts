@@ -16,7 +16,7 @@ export interface RecipeIn {
   description: string;
   source?: string | null;
   ingredients: Ingredient[];
-  tag_ids?: UUID[];
+  tag_ids: UUID[];
 }
 
 export interface RecipeOut extends RecipeIn {

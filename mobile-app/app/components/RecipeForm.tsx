@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, Pressable, FlatList, StyleSheet, Alert, Platform, KeyboardAvoidingView, ActivityIndicator, ScrollView } from 'react-native';
-import { listTags } from 'api/tags';
+import { useTagsApi } from 'api/tags';
 import type { Ingredient, RecipeIn, TagOut } from 'types/types';
 
 type RecipeFormInitial = Partial<RecipeIn> & { tags?: TagOut[] };
@@ -13,6 +13,7 @@ type Props = {
 
 
 export default function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
+  const { listTags } = useTagsApi();
   const [title, setTitle] = useState(initial?.title ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
   const [source, setSource] = useState(initial?.source ?? '');
@@ -57,6 +58,7 @@ export default function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
     }
     setSaving(true);
     try {
+      console.log("selectedTagIds:", selectedTagIds);
       const payload: RecipeIn = {
         title: title.trim(),
         description: description.trim(),
@@ -68,6 +70,7 @@ export default function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
         })),
         tag_ids: selectedTagIds,
       };
+      console.log("PUT/POST payload:", JSON.stringify(payload));
       await onSubmit(payload);
     } finally {
       setSaving(false);

@@ -1,8 +1,8 @@
-"""initial schema
+"""init schema
 
-Revision ID: 0b8d3bbb73e7
+Revision ID: 32be11ac8964
 Revises: 
-Create Date: 2025-08-25 13:55:51.977497
+Create Date: 2025-11-17 16:10:47.966781
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '0b8d3bbb73e7'
+revision: str = '32be11ac8964'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -24,9 +24,11 @@ def upgrade() -> None:
     op.create_table('users',
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('external_id', sa.String(), nullable=True),
-    sa.Column('email', sa.String(), nullable=True),
+    sa.Column('email', sa.String(), nullable=False),
+    sa.Column('password_hash', sa.String(), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
     op.create_index(op.f('ix_users_external_id'), 'users', ['external_id'], unique=True)
     op.create_table('recipes',
     sa.Column('id', sa.UUID(), nullable=False),
@@ -37,7 +39,7 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index('ix_recipes_user_id', 'recipes', ['user_id'], unique=False)
+    op.create_index(op.f('ix_recipes_user_id'), 'recipes', ['user_id'], unique=False)
     op.create_table('tags',
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('user_id', sa.UUID(), nullable=False),
@@ -91,8 +93,9 @@ def downgrade() -> None:
     op.drop_table('ingredients')
     op.drop_index('ix_tags_user_id', table_name='tags')
     op.drop_table('tags')
-    op.drop_index('ix_recipes_user_id', table_name='recipes')
+    op.drop_index(op.f('ix_recipes_user_id'), table_name='recipes')
     op.drop_table('recipes')
     op.drop_index(op.f('ix_users_external_id'), table_name='users')
+    op.drop_index(op.f('ix_users_email'), table_name='users')
     op.drop_table('users')
     # ### end Alembic commands ###

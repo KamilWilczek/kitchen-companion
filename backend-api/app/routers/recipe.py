@@ -1,4 +1,3 @@
-from typing import List
 from uuid import UUID
 
 from app.core.db import get_db
@@ -14,11 +13,10 @@ from sqlalchemy.orm import Session
 router = APIRouter()
 
 
-@router.get("/", response_model=List[RecipeOut])
+@router.get("/", response_model=list[RecipeOut])
 def get_recipes(
     db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
-):
-
+) -> list[RecipeOut]:
     return db.scalars(select(Recipe).where(Recipe.user_id == current_user.id)).all()
 
 
@@ -27,7 +25,7 @@ def add_recipe(
     recipe_in: RecipeIn,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> RecipeOut:
     recipe = Recipe(
         user_id=current_user.id,
         title=recipe_in.title,
@@ -55,7 +53,7 @@ def update_recipe(
     recipe_in: RecipeIn,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> RecipeOut:
     recipe = db.scalar(
         select(Recipe).where(Recipe.id == recipe_id, Recipe.user_id == current_user.id)
     )
@@ -87,7 +85,7 @@ def delete_recipe(
     recipe_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> None:
     recipe = db.scalar(
         select(Recipe).where(Recipe.id == recipe_id, Recipe.user_id == current_user.id)
     )

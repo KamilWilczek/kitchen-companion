@@ -1,7 +1,7 @@
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class ShoppingItemIn(BaseModel):
@@ -15,8 +15,7 @@ class ShoppingItemOut(ShoppingItemIn):
     id: UUID
     checked: bool = False
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ShoppingItemUpdate(BaseModel):

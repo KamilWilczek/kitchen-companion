@@ -12,4 +12,5 @@ class User(Base):
         PG_UUID(as_uuid=True), primary_key=True, default=uuid4
     )
     external_id: Mapped[str | None] = mapped_column(String, unique=True, index=True)
-    email: Mapped[str | None]
+    email: Mapped[str] = mapped_column(String, unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String)

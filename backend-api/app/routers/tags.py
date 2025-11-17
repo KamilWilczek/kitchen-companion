@@ -15,11 +15,11 @@ router = APIRouter()
 tags: List[TagOut] = []
 
 
-@router.get("/", response_model=List[TagOut])
+@router.get("/", response_model=list[TagOut])
 def list_tags(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> list[TagOut]:
     return db.scalars(
         select(Tag).where(Tag.user_id == current_user.id).order_by(Tag.name.asc())
     ).all()
@@ -30,7 +30,7 @@ def create_tag(
     tag: TagIn,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> TagOut:
     name = tag.name.strip().lower()
     if not name:
         raise HTTPException(status_code=400, detail="Tag name cannot be empty.")
@@ -54,7 +54,7 @@ def rename_tag(
     tag: TagIn,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> TagOut:
     row = db.scalar(select(Tag).where(Tag.id == tag_id, Tag.user_id == current_user.id))
     if not row:
         raise HTTPException(status_code=404, detail="Tag not found")
@@ -83,10 +83,10 @@ def rename_tag(
 
 @router.delete("/{tag_id}", status_code=204)
 def delete_tag(
-    tag_id: str,
+    tag_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> None:
     row = db.scalar(select(Tag).where(Tag.id == tag_id, Tag.user_id == current_user.id))
     if not row:
         raise HTTPException(status_code=404, detail="Tag not found")

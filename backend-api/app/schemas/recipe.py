@@ -2,7 +2,7 @@ from typing import List, Optional
 from uuid import UUID
 
 from app.schemas.tag import TagOut
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class Ingredient(BaseModel):
@@ -10,21 +10,24 @@ class Ingredient(BaseModel):
     quantity: float
     unit: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
-class RecipeIn(BaseModel):
+class RecipeBase(BaseModel):
     title: str
     description: str
     ingredients: List[Ingredient]
-    tag_ids: List[str] = []
     source: Optional[str] = None
 
 
-class RecipeOut(RecipeIn):
+class RecipeIn(RecipeBase):
+    tag_ids: List[UUID] = []
+
+    model_config = ConfigDict(extra="forbid")  # reject unknown "tags"
+
+
+class RecipeOut(RecipeBase):
     id: UUID
     tags: List[TagOut]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

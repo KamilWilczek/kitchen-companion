@@ -6,9 +6,10 @@ import main
 import pytest
 from alembic import command
 from alembic.config import Config
+from app.actions import normalize_key
 from app.core.db import get_db
 from app.models.recipe import Ingredient, Recipe
-from app.models.shopping_item import ShoppingItem
+from app.models.shopping_item import ShoppingItem, ShoppingList
 from app.models.tag import Tag
 from app.models.user import User
 from fastapi.testclient import TestClient
@@ -201,13 +202,15 @@ def recipe_factory(
 def shopping_item_factory(
     db_session: Session,
     auth_headers: dict[str, str],
+    shopping_list_factory: t.Callable[..., ShoppingList],
 ) -> t.Callable[..., ShoppingItem]:
     """
-    Create a ShoppingItem for the logged-in test user.
+    Create a ShoppingItem for the logged-in test user, in a given list.
 
     Usage:
         item = shopping_item_factory()
         item = shopping_item_factory(name="Milk", quantity=2.0, unit="l", checked=True)
+        item = shopping_item_factory(shopping_list=my_list)
     """
 
     def _factory(
@@ -217,17 +220,21 @@ def shopping_item_factory(
         unit: str = "l",
         checked: bool = False,
         recipe_id: UUID | None = None,
+        shopping_list: ShoppingList | None = None,
     ) -> ShoppingItem:
         user: User = db_session.query(User).filter_by(email="test@example.com").one()
+
+        if shopping_list is None:
+            shopping_list = shopping_list_factory()
 
         name_clean = name.strip()
         unit_clean = unit.strip()
 
-        name_norm = name_clean.lower()
-        unit_norm = unit_clean.lower()
+        name_norm, unit_norm = normalize_key(name_clean, unit_clean)
 
         item = ShoppingItem(
             user_id=user.id,
+            list_id=shopping_list.id,
             name=name_clean,
             unit=unit_clean,
             quantity=quantity,
@@ -240,5 +247,36 @@ def shopping_item_factory(
         db_session.flush()
         db_session.refresh(item)
         return item
+
+    return _factory
+
+
+@pytest.fixture
+def shopping_list_factory(
+    db_session: Session,
+    auth_headers: dict[str, str],
+) -> t.Callable[..., ShoppingList]:
+    """
+    Create a ShoppingList for the logged-in test user.
+
+    Usage:
+        lst = shopping_list_factory()
+        lst = shopping_list_factory(name="BBQ")
+    """
+
+    def _factory(
+        *, name: str = "My list", description: str | None = None
+    ) -> ShoppingList:
+        user: User = db_session.query(User).filter_by(email="test@example.com").one()
+
+        lst = ShoppingList(
+            user_id=user.id,
+            name=name,
+            description=description,
+        )
+        db_session.add(lst)
+        db_session.flush()
+        db_session.refresh(lst)
+        return lst
 
     return _factory

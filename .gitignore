@@ -11,6 +11,7 @@ backend-api/venv/
 backend-api/__pycache__/
 backend-api/*.py[cod]
 backend-api/.env*
+backend-api/test.db
 
 # Common
 .DS_Store
@@ -22,3 +23,5 @@ __pycache__/
 ideas.txt
 structure.md
 dev.db
+test.db
+backend-api/test.db

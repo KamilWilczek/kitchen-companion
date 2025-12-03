@@ -1,14 +1,13 @@
-from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 class ShoppingItemIn(BaseModel):
     name: str
     quantity: float
     unit: str
-    recipe_id: Optional[UUID] = None
+    recipe_id: UUID | None = None
 
 
 class ShoppingItemOut(ShoppingItemIn):
@@ -19,8 +18,44 @@ class ShoppingItemOut(ShoppingItemIn):
 
 
 class ShoppingItemUpdate(BaseModel):
-    name: Optional[str] = None
-    unit: Optional[str] = None
-    quantity: Optional[float] = None
-    checked: Optional[bool] = None
-    recipe_id: Optional[UUID] = None
+    name: str | None = None
+    unit: str | None = None
+    quantity: float | None = None
+    checked: bool | None = None
+    recipe_id: UUID | None = None
+
+
+class ShoppingListBase(BaseModel):
+    name: str | None = None
+    description: str | None = None
+
+    @field_validator("name")
+    @classmethod
+    def name_cannot_be_blank(cls, v: str) -> str:
+        if v.strip() == "":
+            raise ValueError("Name cannot be empty")
+        return v
+
+
+class ShoppingListIn(ShoppingListBase):
+    model_config = ConfigDict(extra="forbid")
+
+
+class ShoppingListOut(ShoppingListBase):
+    id: UUID
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ShoppingListUpdate(ShoppingListBase):
+    name: str | None = None
+    description: str | None = None
+
+    model_config = ConfigDict(extra="forbid")
+
+    @field_validator("name")
+    @classmethod
+    def name_cannot_be_blank(cls, v: str | None) -> str | None:
+        if v is not None and v.strip() == "":
+            raise ValueError("Name cannot be empty")
+        return v

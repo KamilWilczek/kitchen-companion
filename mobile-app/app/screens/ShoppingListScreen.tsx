@@ -1,4 +1,4 @@
-import { View, Text, FlatList, StyleSheet, Pressable, TextInput, Alert, RefreshControl } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Pressable, TextInput, Alert, RefreshControl, Modal } from 'react-native';
 import { useState, useCallback } from 'react';
 import type { ShoppingItemOut } from 'types/types';
 import { useFocusEffect } from '@react-navigation/native';
@@ -13,6 +13,12 @@ export default function ShoppingListScreen() {
   const [name, setName] = useState('');
   const [qty, setQty] = useState('1');
   const [unit, setUnit] = useState('');
+
+  const [editVisible, setEditVisible] = useState(false);
+  const [editingItem, setEditingItem] = useState<ShoppingItemOut | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editQty, setEditQty] = useState('1');
+  const [editUnit, setEditUnit] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -68,26 +74,76 @@ export default function ShoppingListScreen() {
     setItems(await getShoppingList());
   };
 
+  const openEditModal = (item: ShoppingItemOut) => {
+    setEditingItem(item);
+    setEditName(item.name);
+    setEditQty(String(item.quantity));
+    setEditUnit(item.unit ?? '');
+    setEditVisible(true);
+  };
+
+  const closeEditModal = () => {
+    setEditVisible(false);
+    setEditingItem(null);
+  };
+
+  const saveEdit = async () => {
+    if (!editingItem) return;
+
+    const n = editName.trim();
+    const q = Number(editQty);
+    const u = editUnit.trim();
+
+    if (!n) return;                      // or show some validation
+    if (!Number.isFinite(q) || q <= 0) return;
+
+    await patchShoppingItem(editingItem.id, {
+      name: n,
+      quantity: q,
+      unit: u,
+    });
+
+    setItems(await getShoppingList());
+    closeEditModal();
+  };
+
   const Row = ({ item }: { item: ShoppingItemOut }) => (
-    <View style={s.row}>
-      <Pressable onPress={() => toggleChecked(item.id, !item.checked)} style={[s.checkbox, item.checked && s.checkboxOn]}>
-        <Text style={[s.checkboxText, item.checked && s.checkboxTextOn]}>{item.checked ? '✓' : ''}</Text>
+    <Pressable onLongPress={() => openEditModal(item)} style={s.row}>
+      <Pressable
+        onPress={() => toggleChecked(item.id, !item.checked)}
+        style={[s.checkbox, item.checked && s.checkboxOn]}
+      >
+        <Text style={[s.checkboxText, item.checked && s.checkboxTextOn]}>
+          {item.checked ? '✓' : ''}
+        </Text>
       </Pressable>
 
       <View style={{ flex: 1 }}>
         <Text style={[s.name, item.checked && s.strike]}>{item.name}</Text>
-        <Text style={[s.meta, item.checked && s.strike]}>{item.quantity} {item.unit}</Text>
+        <Text style={[s.meta, item.checked && s.strike]}>
+          {item.quantity} {item.unit}
+        </Text>
       </View>
 
       <View style={s.qBtns}>
-        <Pressable onPress={() => editItem
-    (item.id, -1, item.quantity)} style={s.smallBtn}><Text>-</Text></Pressable>
-        <Pressable onPress={() => editItem
-    (item.id, +1, item.quantity)} style={s.smallBtn}><Text>+</Text></Pressable>
+        <Pressable
+          onPress={() => editItem(item.id, -1, item.quantity)}
+          style={s.smallBtn}
+        >
+          <Text>-</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => editItem(item.id, +1, item.quantity)}
+          style={s.smallBtn}
+        >
+          <Text>+</Text>
+        </Pressable>
       </View>
 
-      <Pressable onPress={() => removeItem(item.id)} style={s.deleteBtn}><Text style={{ color: '#fff' }}>Del</Text></Pressable>
-    </View>
+      <Pressable onPress={() => removeItem(item.id)} style={s.deleteBtn}>
+        <Text style={{ color: '#fff' }}>Del</Text>
+      </Pressable>
+    </Pressable>
   );
 
   return (
@@ -118,6 +174,49 @@ export default function ShoppingListScreen() {
           <Text style={{ color: '#fff' }}>Clear all</Text>
         </Pressable>
       </View>
+      <Modal
+        visible={editVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={closeEditModal}
+      >
+        <View style={s.modalOverlay}>
+          <View style={s.modalCard}>
+            <Text style={s.modalTitle}>Edit item</Text>
+
+            <TextInput
+              value={editName}
+              onChangeText={setEditName}
+              placeholder="Item"
+              style={s.input}
+            />
+
+            <TextInput
+              value={editQty}
+              onChangeText={setEditQty}
+              placeholder="Qty"
+              keyboardType="numeric"
+              style={s.input}
+            />
+
+            <TextInput
+              value={editUnit}
+              onChangeText={setEditUnit}
+              placeholder="Unit"
+              style={s.input}
+            />
+
+            <View style={s.modalActions}>
+              <Pressable onPress={closeEditModal} style={[s.footerBtn, s.ghost]}>
+                <Text>Cancel</Text>
+              </Pressable>
+              <Pressable onPress={saveEdit} style={[s.footerBtn, s.addBtn]}>
+                <Text style={{ color: '#fff' }}>Save</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -143,4 +242,8 @@ const s = StyleSheet.create({
   footerBtn: { flex: 1, alignItems: 'center', padding: 12, borderRadius: 10 },
   ghost: { backgroundColor: '#f3f4f6' },
   danger: { backgroundColor: '#dc2626' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', padding: 24 },
+  modalCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, gap: 10 },
+  modalTitle: { fontSize: 18, fontWeight: '600', marginBottom: 4 },
+  modalActions: { flexDirection: 'row', gap: 10, marginTop: 8 },
 });

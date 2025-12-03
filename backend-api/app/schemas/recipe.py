@@ -1,4 +1,3 @@
-from typing import List, Optional
 from uuid import UUID
 
 from app.schemas.tag import TagOut
@@ -16,18 +15,18 @@ class Ingredient(BaseModel):
 class RecipeBase(BaseModel):
     title: str
     description: str
-    ingredients: List[Ingredient]
-    source: Optional[str] = None
+    ingredients: list[Ingredient]
+    source: str | None = None
 
 
 class RecipeIn(RecipeBase):
-    tag_ids: List[UUID] = []
+    tag_ids: list[UUID] = []
 
     model_config = ConfigDict(extra="forbid")  # reject unknown "tags"
 
 
 class RecipeOut(RecipeBase):
     id: UUID
-    tags: List[TagOut]
+    tags: list[TagOut]
 
     model_config = ConfigDict(from_attributes=True)

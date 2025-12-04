@@ -14,6 +14,20 @@ recipe_tag = Table(
     Column("tag_id", PG_UUID(as_uuid=True), ForeignKey("tags.id"), primary_key=True),
 )
 
+recipe_shares = Table(
+    "recipe_shares",
+    Base.metadata,
+    Column(
+        "recipe_id", PG_UUID(as_uuid=True), ForeignKey("recipes.id"), primary_key=True
+    ),
+    Column(
+        "user_id",
+        PG_UUID(as_uuid=True),
+        ForeignKey("users.id"),
+        primary_key=True,
+    ),
+)
+
 
 class Ingredient(Base):
     __tablename__ = "ingredients"
@@ -50,5 +64,10 @@ class Recipe(Base):
         "Ingredient", cascade="all, delete-orphan", back_populates="recipe"
     )
     tags = relationship("Tag", secondary=recipe_tag, back_populates="recipes")
+    shared_with_users = relationship(
+        "User",
+        secondary=recipe_shares,
+        back_populates="recipes_shared_with_me",
+    )
 
     __table_args__ = (Index("ix_recipes_user_id", "user_id"),)

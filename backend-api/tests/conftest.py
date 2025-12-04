@@ -1,5 +1,6 @@
 import os
 import typing as t
+import uuid
 from uuid import UUID
 
 import main
@@ -149,11 +150,14 @@ def recipe_factory(
     auth_headers: dict[str, str],
 ) -> t.Callable[..., Recipe]:
     """
-    Create a Recipe for the logged-in test user, optionally with ingredients and tags.
+    Create a Recipe for some user (default: logged-in test user),
+    optionally with ingredients and tags.
 
     Usage:
         recipe = recipe_factory()
+        recipe = recipe_factory(user=some_user)
         recipe = recipe_factory(
+            user_id=some_user.id,
             title="Pancakes",
             ingredients=[{"name": "Flour", "quantity": 200, "unit": "g"}],
             tags=[tag1, tag2],
@@ -167,11 +171,23 @@ def recipe_factory(
         source: str | None = None,
         ingredients: t.Sequence[dict] | None = None,
         tags: t.Sequence[Tag] | None = None,
+        user: User | None = None,
+        user_id: UUID | None = None,
     ) -> Recipe:
-        user: User = db_session.query(User).filter_by(email="test@example.com").one()
+        if user is not None and user_id is not None:
+            raise ValueError("Pass either user or user_id, not both")
+
+        if user is None and user_id is None:
+            # default: current logged-in user
+            user = db_session.query(User).filter_by(email="test@example.com").one()
+            user_id_local = user.id
+        elif user is not None:
+            user_id_local = user.id
+        else:
+            user_id_local = user_id  # type: ignore[assignment]
 
         recipe = Recipe(
-            user_id=user.id,
+            user_id=user_id_local,
             title=title,
             description=description,
             source=source,
@@ -257,20 +273,35 @@ def shopping_list_factory(
     auth_headers: dict[str, str],
 ) -> t.Callable[..., ShoppingList]:
     """
-    Create a ShoppingList for the logged-in test user.
+    Create a ShoppingList for a given user (default: logged-in test user).
 
     Usage:
         lst = shopping_list_factory()
         lst = shopping_list_factory(name="BBQ")
+        lst = shopping_list_factory(user=some_user)
+        lst = shopping_list_factory(user_id=some_user.id)
     """
 
     def _factory(
-        *, name: str = "My list", description: str | None = None
+        *,
+        name: str = "My list",
+        description: str | None = None,
+        user: User | None = None,
+        user_id: UUID | None = None,
     ) -> ShoppingList:
-        user: User = db_session.query(User).filter_by(email="test@example.com").one()
+        if user is not None and user_id is not None:
+            raise ValueError("Pass either user or user_id, not both")
+
+        if user is None and user_id is None:
+            user = db_session.query(User).filter_by(email="test@example.com").one()
+            user_id_local = user.id
+        elif user is not None:
+            user_id_local = user.id
+        else:
+            user_id_local = user_id  # type: ignore[assignment]
 
         lst = ShoppingList(
-            user_id=user.id,
+            user_id=user_id_local,
             name=name,
             description=description,
         )
@@ -278,5 +309,32 @@ def shopping_list_factory(
         db_session.flush()
         db_session.refresh(lst)
         return lst
+
+    return _factory
+
+
+@pytest.fixture
+def user_factory(db_session: Session) -> t.Callable[..., User]:
+    """
+    Create arbitrary users for tests (A, B, C, ...).
+
+    Usage:
+        user = user_factory(email="a@example.com")
+        user = user_factory()  # random email
+    """
+
+    def _factory(
+        *,
+        email: str | None = None,
+        password_hash: str = "x",
+    ) -> User:
+        if email is None:
+            email = f"user-{uuid.uuid4()}@example.com"
+
+        user = User(email=email, password_hash=password_hash)
+        db_session.add(user)
+        db_session.flush()
+        db_session.refresh(user)
+        return user
 
     return _factory

@@ -4,7 +4,9 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.models.recipe import Recipe
 from app.models.shopping_item import ShoppingItem, ShoppingList
+from app.models.user import User
 from app.schemas.shopping_item import ShoppingItemIn
 
 
@@ -83,3 +85,27 @@ def _find_and_merge_existing(
         return existing, name_norm, unit_norm
 
     return None, name_norm, unit_norm
+
+
+def user_can_edit_list(user: User, shopping_list: ShoppingList) -> bool:
+    return shopping_list.user_id == user.id or any(
+        u.id == user.id for u in shopping_list.shared_with_users
+    )
+
+
+def user_can_edit_recipe(user: User, recipe: Recipe) -> bool:
+    return recipe.user_id == user.id or any(
+        u.id == user.id for u in recipe.shared_with_users
+    )
+
+
+def list_participants(lst: ShoppingList) -> set[UUID]:
+    ids = {lst.user_id}
+    ids.update(u.id for u in lst.shared_with_users)
+    return ids
+
+
+def recipe_participants(recipe: Recipe) -> set[UUID]:
+    ids = {recipe.user_id}
+    ids.update(u.id for u in recipe.shared_with_users)
+    return ids

@@ -4,6 +4,20 @@ from app.models.base import Base
 from sqlalchemy import ForeignKey, Index, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.schema import Column, Table
+
+shopping_list_shares = Table(
+    "shopping_list_shares",
+    Base.metadata,
+    Column(
+        "list_id",
+        PG_UUID(as_uuid=True),
+        ForeignKey("shopping_lists.id"),
+        primary_key=True,
+    ),
+    Column("user_id", PG_UUID(as_uuid=True), ForeignKey("users.id"), primary_key=True),
+    UniqueConstraint("list_id", "user_id", name="uq_shopping_list_share"),
+)
 
 
 class ShoppingItem(Base):
@@ -28,7 +42,7 @@ class ShoppingItem(Base):
     name_norm: Mapped[str]
     unit_norm: Mapped[str]
 
-    list = relationship("ShoppingList", back_populates="items")
+    shopping_list = relationship("ShoppingList", back_populates="items")
 
     __table_args__ = (
         UniqueConstraint("list_id", "name_norm", "unit_norm", name="uq_shopping_norm"),
@@ -47,5 +61,10 @@ class ShoppingList(Base):
     name: Mapped[str]
     description: Mapped[str | None] = mapped_column(default=None)
     items = relationship(
-        "ShoppingItem", back_populates="list", cascade="all, delete-orphan"
+        "ShoppingItem", back_populates="shopping_list", cascade="all, delete-orphan"
+    )
+    shared_with_users = relationship(
+        "User",
+        secondary=shopping_list_shares,
+        back_populates="shopping_lists_shared_with_me",
     )

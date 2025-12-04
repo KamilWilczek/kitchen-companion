@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from app.models.recipe import Ingredient, Recipe
 from app.models.tag import Tag
+from app.models.user import User
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
@@ -31,6 +32,26 @@ def test_get_recipes_returns_recipes_for_current_user(
     body = res.json()
     titles = {r["title"] for r in body}
     assert titles == {"R1", "R2"}
+
+
+def test_get_recipes_for_shared_user(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    recipe_factory: t.Callable[..., Recipe],
+    db_session: Session,
+    user_factory: t.Callable[..., t.Any],
+) -> None:
+    current_user = db_session.query(User).filter_by(email="test@example.com").one()
+    owner = user_factory(email="owner@example.com")
+    shared_recipe = recipe_factory(title="Shared recipe", tags=[], ingredients=[])
+    shared_recipe.user_id = owner.id
+    shared_recipe.shared_with_users.append(current_user)
+    db_session.commit()
+
+    response = client.get("/recipes/", headers=auth_headers)
+    assert response.status_code == 200
+    body = response.json()
+    assert "Shared recipe" in body[0]["title"]
 
 
 def test_add_recipe_with_ingredients_and_tags(
@@ -110,6 +131,39 @@ def test_update_recipe_replaces_ingredients_and_tags(
 
     tag_names = {t["name"] for t in body["tags"]}
     assert tag_names == {"new"}
+
+
+def test_update_recipe_by_shared_user(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    recipe_factory: t.Callable[..., Recipe],
+    db_session: Session,
+    user_factory: t.Callable[..., t.Any],
+) -> None:
+    current_user = db_session.query(User).filter_by(email="test@example.com").one()
+    owner = user_factory(email="owner@example.com")
+    shared_recipe = recipe_factory(title="Shared recipe", tags=[], ingredients=[])
+    shared_recipe.user_id = owner.id
+    shared_recipe.shared_with_users.append(current_user)
+    db_session.commit()
+
+    payload = {
+        "title": "Updated title",
+        "description": "Updated desc",
+        "source": "Updated source",
+        "ingredients": [
+            {"name": "Updated ingredient", "quantity": 2, "unit": "pc"},
+        ],
+        "tag_ids": [],
+    }
+
+    response = client.put(
+        f"/recipes/{shared_recipe.id}", json=payload, headers=auth_headers
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["title"] == "Updated title"
+    assert body["description"] == "Updated desc"
 
 
 def test_update_recipe_clears_tags_when_tag_ids_empty(
@@ -201,6 +255,24 @@ def test_delete_recipe_not_found_returns_404(
 
     assert res.status_code == 404
     assert res.json()["detail"] == "Recipe not found"
+
+
+def test_delete_recipe_by_shared_user(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    recipe_factory: t.Callable[..., Recipe],
+    db_session: Session,
+    user_factory: t.Callable[..., t.Any],
+) -> None:
+    current_user = db_session.query(User).filter_by(email="test@example.com").one()
+    owner = user_factory(email="owner@example.com")
+    shared_recipe = recipe_factory(title="Shared recipe", tags=[], ingredients=[])
+    shared_recipe.user_id = owner.id
+    shared_recipe.shared_with_users.append(current_user)
+    db_session.commit()
+
+    response = client.delete(f"/recipes/{shared_recipe.id}", headers=auth_headers)
+    assert response.status_code == 404
 
 
 def test_add_recipe_rejects_unknown_field_tags(

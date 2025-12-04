@@ -30,3 +30,9 @@ class RecipeOut(RecipeBase):
     tags: list[TagOut]
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class RecipeShareIn(BaseModel):
+    shared_with_id: UUID
+
+    model_config = ConfigDict(extra="forbid")

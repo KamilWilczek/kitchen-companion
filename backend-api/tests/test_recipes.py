@@ -2,6 +2,7 @@ import typing as t
 from uuid import uuid4
 
 from app.models.recipe import Ingredient, Recipe
+from app.models.shopping_item import ShoppingItem, ShoppingList
 from app.models.tag import Tag
 from app.models.user import User
 from fastapi.testclient import TestClient
@@ -290,3 +291,409 @@ def test_add_recipe_rejects_unknown_field_tags(
     res = client.post("/recipes/", json=payload, headers=auth_headers)
 
     assert res.status_code == 422
+
+
+def test_add_from_recipe_adds_all_ingredients(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    recipe_factory: t.Callable[..., Recipe],
+    db_session: Session,
+    shopping_list_factory: t.Callable[..., ShoppingList],
+) -> None:
+    shopping_list = shopping_list_factory()
+
+    recipe = recipe_factory(
+        title="Pancakes",
+        description="desc",
+        source=None,
+        ingredients=[
+            {"name": "Flour", "quantity": 200.0, "unit": "g"},
+            {"name": "Milk", "quantity": 300.0, "unit": "ml"},
+        ],
+    )
+
+    response = client.post(
+        f"/recipes/{shopping_list.id}/from-recipe/{recipe.id}",
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 2
+
+    names = {i["name"] for i in body}
+    assert names == {"Flour", "Milk"}
+
+    for item in body:
+        assert item["recipe_id"] == str(recipe.id)
+        assert item["checked"] is False
+
+    db_items = (
+        db_session.query(ShoppingItem)
+        .filter(
+            ShoppingItem.recipe_id == recipe.id,
+            ShoppingItem.list_id == shopping_list.id,
+        )
+        .all()
+    )
+    assert len(db_items) == 2
+
+
+def test_add_from_recipe_404_when_recipe_not_found(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    shopping_list_factory: t.Callable[..., ShoppingList],
+) -> None:
+    shopping_list = shopping_list_factory()
+    unknown_id = str(uuid4())
+
+    response = client.post(
+        f"/recipes/{shopping_list.id}/from-recipe/{unknown_id}",
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Recipe not found"
+
+
+def test_add_from_recipe_404_when_recipe_belongs_to_other_user(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    db_session: Session,
+    shopping_list_factory: t.Callable[..., ShoppingList],
+) -> None:
+    shopping_list = shopping_list_factory()
+
+    other_user = User(email="other@example.com", password_hash="x")
+    db_session.add(other_user)
+    db_session.flush()
+
+    recipe = Recipe(
+        user_id=other_user.id,
+        title="Secret",
+        description="desc",
+        source=None,
+    )
+    recipe.ingredients = [
+        Ingredient(name="Hidden", quantity=1.0, unit="pc"),
+    ]
+    db_session.add(recipe)
+    db_session.commit()
+    db_session.refresh(recipe)
+
+    response = client.post(
+        f"/recipes/{shopping_list.id}/from-recipe/{recipe.id}",
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Recipe not found"
+
+
+def test_add_from_recipe_allowed_from_shared_recipe_to_private_list(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    db_session: Session,
+    user_factory: t.Callable[..., User],
+    recipe_factory: t.Callable[..., Recipe],
+    shopping_list_factory: t.Callable[..., ShoppingList],
+) -> None:
+    user_b = db_session.query(User).filter_by(email="test@example.com").one()
+    user_a = user_factory(email="a@example.com")
+
+    recipe = recipe_factory(
+        user=user_a,
+        title="A's recipe",
+        ingredients=[
+            {"name": "Flour", "quantity": 200.0, "unit": "g"},
+            {"name": "Milk", "quantity": 300.0, "unit": "ml"},
+        ],
+    )
+
+    recipe.shared_with_users.append(user_b)
+    db_session.commit()
+
+    list_b = shopping_list_factory(user=user_b, name="B-only list")
+
+    res = client.post(
+        f"/recipes/{list_b.id}/from-recipe/{recipe.id}",
+        headers=auth_headers,
+    )
+
+    assert res.status_code == 200
+    body = res.json()
+    assert len(body) == 2
+    names = {i["name"] for i in body}
+    assert names == {"Flour", "Milk"}
+
+
+def test_add_from_recipe_allowed_from_shared_recipe_to_shared_list(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    db_session: Session,
+    user_factory: t.Callable[..., User],
+    recipe_factory: t.Callable[..., Recipe],
+    shopping_list_factory: t.Callable[..., ShoppingList],
+) -> None:
+    user_b = db_session.query(User).filter_by(email="test@example.com").one()
+    user_a = user_factory(email="a@example.com")
+
+    recipe = recipe_factory(
+        user=user_a,
+        title="A's recipe",
+        ingredients=[
+            {"name": "Flour", "quantity": 200.0, "unit": "g"},
+            {"name": "Milk", "quantity": 300.0, "unit": "ml"},
+        ],
+    )
+
+    recipe.shared_with_users.append(user_b)
+    db_session.commit()
+
+    list_ab = shopping_list_factory(user=user_a, name="A+B list")
+    list_ab.shared_with_users.append(user_b)
+    db_session.commit()
+
+    res = client.post(
+        f"/recipes/{list_ab.id}/from-recipe/{recipe.id}",
+        headers=auth_headers,
+    )
+
+    assert res.status_code == 200
+    body = res.json()
+    assert len(body) == 2
+    names = {i["name"] for i in body}
+    assert names == {"Flour", "Milk"}
+
+
+def test_add_from_recipe_forbidden_when_list_has_member_without_recipe_access(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    db_session: Session,
+    user_factory: t.Callable[..., User],
+    recipe_factory: t.Callable[..., Recipe],
+    shopping_list_factory: t.Callable[..., ShoppingList],
+) -> None:
+    user_b = db_session.query(User).filter_by(email="test@example.com").one()
+    user_a = user_factory(email="a@example.com")
+    user_c = user_factory(email="c@example.com")
+
+    recipe = recipe_factory(
+        user=user_a,
+        title="A's recipe",
+        ingredients=[
+            {"name": "Flour", "quantity": 200.0, "unit": "g"},
+            {"name": "Milk", "quantity": 300.0, "unit": "ml"},
+        ],
+    )
+
+    recipe.shared_with_users.append(user_b)
+    db_session.commit()
+
+    list_bc = shopping_list_factory(user=user_b, name="B+C list")
+    list_bc.shared_with_users.append(user_c)
+    db_session.commit()
+
+    res = client.post(
+        f"/recipes/{list_bc.id}/from-recipe/{recipe.id}",
+        headers=auth_headers,
+    )
+
+    assert res.status_code == 403
+    detail = res.json().get("detail", "").lower()
+    assert "recipe" in detail or "access" in detail
+
+
+def test_add_from_recipe_keeps_manual_item_separate(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    db_session: Session,
+    shopping_list_factory: t.Callable[..., ShoppingList],
+    shopping_item_factory: t.Callable[..., ShoppingItem],
+    recipe_factory: t.Callable[..., Recipe],
+) -> None:
+    shopping_list = shopping_list_factory()
+
+    shopping_item_factory(
+        name="Tomato",
+        quantity=1.0,
+        unit="szt.",
+        checked=False,
+        shopping_list=shopping_list,
+    )
+
+    recipe = recipe_factory(
+        title="Tomato Soup",
+        ingredients=[{"name": "Tomato", "quantity": 3.0, "unit": "szt."}],
+    )
+
+    response = client.post(
+        f"/recipes/{shopping_list.id}/from-recipe/{recipe.id}",
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+
+    items = (
+        db_session.query(ShoppingItem)
+        .filter(ShoppingItem.list_id == shopping_list.id, ShoppingItem.name == "Tomato")
+        .all()
+    )
+    assert len(items) == 2
+
+    manual = next(i for i in items if i.recipe_id is None)
+    from_recipe = next(i for i in items if i.recipe_id == recipe.id)
+
+    assert manual.quantity == 1.0
+    assert from_recipe.quantity == 3.0
+
+
+def test_add_from_recipe_merges_with_existing_recipe_item(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    db_session: Session,
+    shopping_list_factory: t.Callable[..., ShoppingList],
+    shopping_item_factory: t.Callable[..., ShoppingItem],
+    recipe_factory: t.Callable[..., Recipe],
+) -> None:
+    shopping_list = shopping_list_factory()
+
+    recipe = recipe_factory(
+        title="Pancakes",
+        ingredients=[
+            {"name": "Flour", "quantity": 200.0, "unit": "g"},
+            {"name": "Milk", "quantity": 300.0, "unit": "ml"},
+        ],
+    )
+
+    shopping_item_factory(
+        name="Flour",
+        quantity=200.0,
+        unit="g",
+        checked=False,
+        shopping_list=shopping_list,
+        recipe_id=recipe.id,
+    )
+
+    response = client.post(
+        f"/recipes/{shopping_list.id}/from-recipe/{recipe.id}",
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+
+    flour_items = (
+        db_session.query(ShoppingItem)
+        .filter(
+            ShoppingItem.list_id == shopping_list.id,
+            ShoppingItem.name == "Flour",
+            ShoppingItem.unit == "g",
+            ShoppingItem.recipe_id == recipe.id,
+        )
+        .all()
+    )
+    assert len(flour_items) == 1
+    assert flour_items[0].quantity == 400.0
+
+
+def test_add_from_recipe_does_not_merge_items_from_other_recipes(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    db_session: Session,
+    shopping_list_factory: t.Callable[..., ShoppingList],
+    shopping_item_factory: t.Callable[..., ShoppingItem],
+    recipe_factory: t.Callable[..., Recipe],
+) -> None:
+    shopping_list = shopping_list_factory()
+
+    recipe1 = recipe_factory(
+        title="Tomato Soup",
+        ingredients=[{"name": "Tomato", "quantity": 3.0, "unit": "szt."}],
+    )
+    recipe2 = recipe_factory(
+        title="Tomato Pasta",
+        ingredients=[{"name": "Tomato", "quantity": 4.0, "unit": "szt."}],
+    )
+
+    shopping_item_factory(
+        name="Tomato",
+        quantity=3.0,
+        unit="szt.",
+        checked=False,
+        shopping_list=shopping_list,
+        recipe_id=recipe1.id,
+    )
+
+    response = client.post(
+        f"/recipes/{shopping_list.id}/from-recipe/{recipe2.id}",
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+
+    items = (
+        db_session.query(ShoppingItem)
+        .filter(ShoppingItem.list_id == shopping_list.id, ShoppingItem.name == "Tomato")
+        .all()
+    )
+
+    assert len(items) == 2
+    qty_by_recipe = {i.recipe_id: i.quantity for i in items}
+    assert qty_by_recipe[recipe1.id] == 3.0
+    assert qty_by_recipe[recipe2.id] == 4.0
+
+
+def test_add_selected_ingredients_from_recipe_to_shopping_list(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    db_session: Session,
+    recipe_factory: t.Callable[..., Recipe],
+    shopping_list_factory: t.Callable[..., ShoppingList],
+) -> None:
+    shopping_list = shopping_list_factory()
+
+    recipe = recipe_factory(
+        title="Tomato Sauce",
+        description="desc",
+        source=None,
+        ingredients=[
+            {"name": "Tomato pulp", "quantity": 1.0, "unit": "op."},
+            {"name": "Olive oil", "quantity": 10.0, "unit": "ml"},
+            {"name": "Oregano", "quantity": 1.0, "unit": "g"},
+            {"name": "Basil", "quantity": 1.0, "unit": "g"},
+        ],
+    )
+
+    db_session.refresh(recipe)
+    ing_by_name = {ing.name: ing for ing in recipe.ingredients}
+    tomato = ing_by_name["Tomato pulp"]
+    oregano = ing_by_name["Oregano"]
+
+    payload = {
+        "ingredient_ids": [str(tomato.id), str(oregano.id)],
+    }
+
+    response = client.post(
+        f"/recipes/{recipe.id}/shopping-lists/{shopping_list.id}/items",
+        json=payload,
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 2
+
+    names = {item["name"] for item in body}
+    assert names == {"Tomato pulp", "Oregano"}
+
+    for item in body:
+        assert item["recipe_id"] == str(recipe.id)
+        assert item["checked"] is False
+
+    db_items = (
+        db_session.query(ShoppingItem)
+        .filter(
+            ShoppingItem.list_id == shopping_list.id,
+            ShoppingItem.recipe_id == recipe.id,
+        )
+        .all()
+    )
+    assert len(db_items) == 2
+    assert {i.name for i in db_items} == {"Tomato pulp", "Oregano"}

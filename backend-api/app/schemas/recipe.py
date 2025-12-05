@@ -12,6 +12,14 @@ class Ingredient(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class IngredientOut(Ingredient):
+    id: UUID
+
+
+class IngredientsToShoppingList(BaseModel):
+    ingredient_ids: list[UUID]
+
+
 class RecipeBase(BaseModel):
     title: str
     description: str
@@ -20,13 +28,15 @@ class RecipeBase(BaseModel):
 
 
 class RecipeIn(RecipeBase):
+    ingredients: list[Ingredient]
     tag_ids: list[UUID] = []
 
-    model_config = ConfigDict(extra="forbid")  # reject unknown "tags"
+    model_config = ConfigDict(extra="forbid")
 
 
 class RecipeOut(RecipeBase):
     id: UUID
+    ingredients: list[IngredientOut]
     tags: list[TagOut]
 
     model_config = ConfigDict(from_attributes=True)

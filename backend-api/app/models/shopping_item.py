@@ -44,16 +44,27 @@ class ShoppingItem(Base):
     quantity: Mapped[float]
     checked: Mapped[bool] = mapped_column(default=False)
     recipe_id: Mapped[UUID | None] = mapped_column(
-        PG_UUID(as_uuid=True), ForeignKey("recipes.id"), default=None
+        PG_UUID(as_uuid=True),
+        ForeignKey("recipes.id"),
+        default=None,
+        nullable=True,
+        index=True,
     )
 
     name_norm: Mapped[str]
     unit_norm: Mapped[str]
 
     shopping_list = relationship("ShoppingList", back_populates="items")
+    recipe = relationship("Recipe", back_populates="shopping_items")
 
     __table_args__ = (
-        UniqueConstraint("list_id", "name_norm", "unit_norm", name="uq_shopping_norm"),
+        UniqueConstraint(
+            "list_id",
+            "name_norm",
+            "unit_norm",
+            "recipe_id",
+            name="uq_shopping_per_source",
+        ),
         Index("ix_shopping_items_list_id", "list_id"),
         CheckConstraint(
             "unit IN ('l', 'kg', 'ml', 'g', 'szt.', 'op.') OR unit IS NULL",

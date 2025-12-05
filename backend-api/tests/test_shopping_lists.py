@@ -2,7 +2,7 @@ import typing as t
 from uuid import UUID, uuid4
 
 import pytest
-from app.models.recipe import Ingredient, Recipe
+from app.models.recipe import Recipe
 from app.models.shopping_item import ShoppingItem, ShoppingList
 from app.models.user import User
 from app.schemas.shopping_item import VALID_UNITS
@@ -890,217 +890,6 @@ class TestShoppingLists:
 
         assert response.status_code == 204
 
-    def test_add_from_recipe_adds_all_ingredients(
-        self,
-        client: TestClient,
-        auth_headers: dict[str, str],
-        recipe_factory: t.Callable[..., Recipe],
-        db_session: Session,
-        shopping_list_factory: t.Callable[..., ShoppingList],
-    ) -> None:
-        shopping_list = shopping_list_factory()
-
-        recipe = recipe_factory(
-            title="Pancakes",
-            description="desc",
-            source=None,
-            ingredients=[
-                {"name": "Flour", "quantity": 200.0, "unit": "g"},
-                {"name": "Milk", "quantity": 300.0, "unit": "ml"},
-            ],
-        )
-
-        response = client.post(
-            f"/shopping-lists/{shopping_list.id}/from-recipe/{recipe.id}",
-            headers=auth_headers,
-        )
-
-        assert response.status_code == 200
-        body = response.json()
-        assert len(body) == 2
-
-        names = {i["name"] for i in body}
-        assert names == {"Flour", "Milk"}
-
-        for item in body:
-            assert item["recipe_id"] == str(recipe.id)
-            assert item["checked"] is False
-
-        db_items = (
-            db_session.query(ShoppingItem)
-            .filter(
-                ShoppingItem.recipe_id == recipe.id,
-                ShoppingItem.list_id == shopping_list.id,
-            )
-            .all()
-        )
-        assert len(db_items) == 2
-
-    def test_add_from_recipe_404_when_recipe_not_found(
-        self,
-        client: TestClient,
-        auth_headers: dict[str, str],
-        shopping_list_factory: t.Callable[..., ShoppingList],
-    ) -> None:
-        shopping_list = shopping_list_factory()
-        unknown_id = str(uuid4())
-
-        response = client.post(
-            f"/shopping-lists/{shopping_list.id}/from-recipe/{unknown_id}",
-            headers=auth_headers,
-        )
-
-        assert response.status_code == 404
-        assert response.json()["detail"] == "Recipe not found"
-
-    def test_add_from_recipe_404_when_recipe_belongs_to_other_user(
-        self,
-        client: TestClient,
-        auth_headers: dict[str, str],
-        db_session: Session,
-        shopping_list_factory: t.Callable[..., ShoppingList],
-    ) -> None:
-        shopping_list = shopping_list_factory()
-
-        other_user = User(email="other@example.com", password_hash="x")
-        db_session.add(other_user)
-        db_session.flush()
-
-        recipe = Recipe(
-            user_id=other_user.id,
-            title="Secret",
-            description="desc",
-            source=None,
-        )
-        recipe.ingredients = [
-            Ingredient(name="Hidden", quantity=1.0, unit="pc"),
-        ]
-        db_session.add(recipe)
-        db_session.commit()
-        db_session.refresh(recipe)
-
-        response = client.post(
-            f"/shopping-lists/{shopping_list.id}/from-recipe/{recipe.id}",
-            headers=auth_headers,
-        )
-
-        assert response.status_code == 404
-        assert response.json()["detail"] == "Recipe not found"
-
-    def test_add_from_recipe_allowed_from_shared_recipe_to_private_list(
-        self,
-        client: TestClient,
-        auth_headers: dict[str, str],
-        db_session: Session,
-        user_factory: t.Callable[..., User],
-        recipe_factory: t.Callable[..., Recipe],
-        shopping_list_factory: t.Callable[..., ShoppingList],
-    ) -> None:
-        user_b = db_session.query(User).filter_by(email="test@example.com").one()
-        user_a = user_factory(email="a@example.com")
-
-        recipe = recipe_factory(
-            user=user_a,
-            title="A's recipe",
-            ingredients=[
-                {"name": "Flour", "quantity": 200.0, "unit": "g"},
-                {"name": "Milk", "quantity": 300.0, "unit": "ml"},
-            ],
-        )
-
-        recipe.shared_with_users.append(user_b)
-        db_session.commit()
-
-        list_b = shopping_list_factory(user=user_b, name="B-only list")
-
-        res = client.post(
-            f"/shopping-lists/{list_b.id}/from-recipe/{recipe.id}",
-            headers=auth_headers,
-        )
-
-        assert res.status_code == 200
-        body = res.json()
-        assert len(body) == 2
-        names = {i["name"] for i in body}
-        assert names == {"Flour", "Milk"}
-
-    def test_add_from_recipe_allowed_from_shared_recipe_to_shared_list(
-        self,
-        client: TestClient,
-        auth_headers: dict[str, str],
-        db_session: Session,
-        user_factory: t.Callable[..., User],
-        recipe_factory: t.Callable[..., Recipe],
-        shopping_list_factory: t.Callable[..., ShoppingList],
-    ) -> None:
-        user_b = db_session.query(User).filter_by(email="test@example.com").one()
-        user_a = user_factory(email="a@example.com")
-
-        recipe = recipe_factory(
-            user=user_a,
-            title="A's recipe",
-            ingredients=[
-                {"name": "Flour", "quantity": 200.0, "unit": "g"},
-                {"name": "Milk", "quantity": 300.0, "unit": "ml"},
-            ],
-        )
-
-        recipe.shared_with_users.append(user_b)
-        db_session.commit()
-
-        list_ab = shopping_list_factory(user=user_a, name="A+B list")
-        list_ab.shared_with_users.append(user_b)
-        db_session.commit()
-
-        res = client.post(
-            f"/shopping-lists/{list_ab.id}/from-recipe/{recipe.id}",
-            headers=auth_headers,
-        )
-
-        assert res.status_code == 200
-        body = res.json()
-        assert len(body) == 2
-        names = {i["name"] for i in body}
-        assert names == {"Flour", "Milk"}
-
-    def test_add_from_recipe_forbidden_when_list_has_member_without_recipe_access(
-        self,
-        client: TestClient,
-        auth_headers: dict[str, str],
-        db_session: Session,
-        user_factory: t.Callable[..., User],
-        recipe_factory: t.Callable[..., Recipe],
-        shopping_list_factory: t.Callable[..., ShoppingList],
-    ) -> None:
-        user_b = db_session.query(User).filter_by(email="test@example.com").one()
-        user_a = user_factory(email="a@example.com")
-        user_c = user_factory(email="c@example.com")
-
-        recipe = recipe_factory(
-            user=user_a,
-            title="A's recipe",
-            ingredients=[
-                {"name": "Flour", "quantity": 200.0, "unit": "g"},
-                {"name": "Milk", "quantity": 300.0, "unit": "ml"},
-            ],
-        )
-
-        recipe.shared_with_users.append(user_b)
-        db_session.commit()
-
-        list_bc = shopping_list_factory(user=user_b, name="B+C list")
-        list_bc.shared_with_users.append(user_c)
-        db_session.commit()
-
-        res = client.post(
-            f"/shopping-lists/{list_bc.id}/from-recipe/{recipe.id}",
-            headers=auth_headers,
-        )
-
-        assert res.status_code == 403
-        detail = res.json().get("detail", "").lower()
-        assert "recipe" in detail or "access" in detail
-
     def test_add_item_without_unit(
         self,
         client: TestClient,
@@ -1176,3 +965,153 @@ class TestShoppingLists:
         )
 
         assert resp.status_code == 422
+
+    def test_update_item_does_not_merge_manual_and_recipe(
+        self,
+        client: TestClient,
+        auth_headers: dict[str, str],
+        db_session: Session,
+        shopping_list_factory: t.Callable[..., ShoppingList],
+        shopping_item_factory: t.Callable[..., ShoppingItem],
+        recipe_factory: t.Callable[..., Recipe],
+    ) -> None:
+        shopping_list = shopping_list_factory()
+        recipe = recipe_factory(title="Something", ingredients=[])
+
+        shopping_item_factory(
+            name="Tomato",
+            quantity=1.0,
+            unit="szt.",
+            checked=False,
+            shopping_list=shopping_list,
+            recipe_id=None,
+        )
+        recipe_item = shopping_item_factory(
+            name="Not tomato",
+            quantity=2.0,
+            unit="szt.",
+            checked=False,
+            shopping_list=shopping_list,
+            recipe_id=recipe.id,
+        )
+
+        response = client.patch(
+            f"/shopping-lists/{shopping_list.id}/items/{recipe_item.id}",
+            json={"name": "Tomato", "unit": "szt."},
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+
+        items = (
+            db_session.query(ShoppingItem)
+            .filter(
+                ShoppingItem.list_id == shopping_list.id, ShoppingItem.name == "Tomato"
+            )
+            .all()
+        )
+        assert len(items) == 2
+        assert {i.recipe_id for i in items} == {None, recipe.id}
+
+    def test_remove_recipe_from_list_deletes_only_recipe_items(
+        self,
+        client: TestClient,
+        auth_headers: dict[str, str],
+        db_session: Session,
+        shopping_list_factory: t.Callable[..., ShoppingList],
+        shopping_item_factory: t.Callable[..., ShoppingItem],
+        recipe_factory: t.Callable[..., Recipe],
+    ) -> None:
+        shopping_list = shopping_list_factory()
+        recipe = recipe_factory(
+            title="Pasta",
+            ingredients=[],
+        )
+
+        manual_item = shopping_item_factory(
+            name="Tomato",
+            quantity=1.0,
+            unit="szt.",
+            checked=False,
+            shopping_list=shopping_list,
+            recipe_id=None,
+        )
+        shopping_item_factory(
+            name="Tomato",
+            quantity=3.0,
+            unit="szt.",
+            checked=False,
+            shopping_list=shopping_list,
+            recipe_id=recipe.id,
+        )
+
+        response = client.delete(
+            f"/shopping-lists/{shopping_list.id}/recipes/{recipe.id}",
+            headers=auth_headers,
+        )
+        assert response.status_code == 204
+
+        remaining = (
+            db_session.query(ShoppingItem)
+            .filter(ShoppingItem.list_id == shopping_list.id)
+            .all()
+        )
+
+        assert len(remaining) == 1
+        assert remaining[0].id == manual_item.id
+        assert remaining[0].recipe_id is None
+
+    def test_remove_recipe_from_list_no_items_is_noop(
+        self,
+        client: TestClient,
+        auth_headers: dict[str, str],
+        db_session: Session,
+        shopping_list_factory: t.Callable[..., ShoppingList],
+        recipe_factory: t.Callable[..., Recipe],
+    ) -> None:
+        shopping_list = shopping_list_factory()
+        recipe = recipe_factory(title="Unused recipe", ingredients=[])
+
+        res = client.delete(
+            f"/shopping-lists/{shopping_list.id}/recipes/{recipe.id}",
+            headers=auth_headers,
+        )
+        assert res.status_code == 204
+
+        items = (
+            db_session.query(ShoppingItem)
+            .filter(ShoppingItem.list_id == shopping_list.id)
+            .all()
+        )
+        assert items == []
+
+    def test_remove_recipe_from_list_404_when_list_belongs_to_other_user(
+        self,
+        client: TestClient,
+        auth_headers: dict[str, str],
+        db_session: Session,
+        user_factory: t.Callable[..., User],
+        shopping_list_factory: t.Callable[..., ShoppingList],
+        recipe_factory: t.Callable[..., Recipe],
+        shopping_item_factory: t.Callable[..., ShoppingItem],
+    ) -> None:
+        other_user = user_factory(email="other@example.com")
+        other_list = shopping_list_factory(user=other_user, name="Other list")
+        recipe = recipe_factory(title="Other's recipe", ingredients=[])
+
+        shopping_item_factory(
+            name="Secret",
+            quantity=1.0,
+            unit="kg",
+            checked=False,
+            shopping_list=other_list,
+            recipe_id=recipe.id,
+        )
+        db_session.commit()
+
+        response = client.delete(
+            f"/shopping-lists/{other_list.id}/recipes/{recipe.id}",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 404
+        assert response.json()["detail"] == "List not found"

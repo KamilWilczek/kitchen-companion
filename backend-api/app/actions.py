@@ -24,32 +24,36 @@ def normalize_key(name: str, unit: str | None) -> tuple[str, str]:
 def create_or_merge_item(
     *, db: Session, shopping_list: ShoppingList, data: ShoppingItemIn
 ) -> ShoppingItem:
-    existing, name_norm, unit_norm = _find_and_merge_existing(
-        db=db,
-        list_id=shopping_list.id,
-        name=data.name,
-        unit=data.unit,
-        quantity=data.quantity,
-        recipe_id=data.recipe_id,
-        exclude_item_id=None,
+    clean_name = data.name.strip()
+    clean_unit = data.unit.strip() if data.unit is not None else None
+    name_norm, unit_norm = normalize_key(clean_name, clean_unit)
+
+    recipe_id = data.recipe_id
+
+    existing = db.scalar(
+        select(ShoppingItem).where(
+            ShoppingItem.list_id == shopping_list.id,
+            ShoppingItem.name_norm == name_norm,
+            ShoppingItem.unit_norm == unit_norm,
+            ShoppingItem.recipe_id == recipe_id,
+        )
     )
 
     if existing:
+        existing.quantity += data.quantity
+        existing.checked = False
         db.commit()
         db.refresh(existing)
         return existing
 
-    clean_name = data.name.strip()
-    clean_unit = data.unit.strip() if data.unit is not None else None
-
     new_item = ShoppingItem(
         user_id=shopping_list.user_id,
         list_id=shopping_list.id,
+        recipe_id=recipe_id,
         name=clean_name,
         unit=clean_unit,
         quantity=data.quantity,
         checked=False,
-        recipe_id=data.recipe_id if data.recipe_id else None,
         name_norm=name_norm,
         unit_norm=unit_norm,
     )
@@ -59,7 +63,7 @@ def create_or_merge_item(
     return new_item
 
 
-def _find_and_merge_existing(
+def find_and_merge_existing(
     *,
     db: Session,
     list_id: UUID,
@@ -72,8 +76,9 @@ def _find_and_merge_existing(
     """
     Core logic:
     - normalize (name, unit)
-    - find existing item in given list with same normalized key (optionally excluding one item)
-    - if found: merge quantity, uncheck, maybe set recipe_id
+    - find existing item in given list with same normalized key AND same recipe_id
+      (optionally excluding one item)
+    - if found: merge quantity, uncheck
     - return (existing_or_none, name_norm, unit_norm)
     """
     name_norm, unit_norm = normalize_key(name, unit)
@@ -82,7 +87,9 @@ def _find_and_merge_existing(
         ShoppingItem.list_id == list_id,
         ShoppingItem.name_norm == name_norm,
         ShoppingItem.unit_norm == unit_norm,
+        ShoppingItem.recipe_id == recipe_id,
     )
+
     if exclude_item_id is not None:
         q = q.where(ShoppingItem.id != exclude_item_id)
 
@@ -90,8 +97,6 @@ def _find_and_merge_existing(
     if existing:
         existing.quantity += quantity
         existing.checked = False
-        if not existing.recipe_id and recipe_id:
-            existing.recipe_id = recipe_id
         return existing, name_norm, unit_norm
 
     return None, name_norm, unit_norm

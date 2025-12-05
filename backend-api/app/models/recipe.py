@@ -69,5 +69,6 @@ class Recipe(Base):
         secondary=recipe_shares,
         back_populates="recipes_shared_with_me",
     )
+    shopping_items = relationship("ShoppingItem", back_populates="recipe")
 
     __table_args__ = (Index("ix_recipes_user_id", "user_id"),)

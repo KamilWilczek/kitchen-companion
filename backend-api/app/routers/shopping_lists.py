@@ -1,16 +1,12 @@
 from uuid import UUID
 
 from app.actions import (
-    _find_and_merge_existing,
     create_or_merge_item,
-    list_participants,
-    recipe_participants,
+    find_and_merge_existing,
     user_can_edit_list,
-    user_can_edit_recipe,
 )
 from app.core.db import get_db
 from app.core.deps import get_current_user
-from app.models.recipe import Recipe
 from app.models.shopping_item import ShoppingItem, ShoppingList
 from app.models.user import User
 from app.schemas.shopping_item import (
@@ -268,7 +264,7 @@ def update_item(
         db.refresh(item)
         return item
 
-    existing, name_norm, unit_norm = _find_and_merge_existing(
+    existing, name_norm, unit_norm = find_and_merge_existing(
         db=db,
         list_id=list_id,
         name=target_name,
@@ -341,42 +337,24 @@ def clear_list(
     return None
 
 
-@router.post("/{list_id}/from-recipe/{recipe_id}", response_model=list[ShoppingItemOut])
-def add_from_recipe(
+@router.delete("/{list_id}/recipes/{recipe_id}", status_code=204)
+def remove_recipe_from_list(
     list_id: UUID,
     recipe_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> list[ShoppingItemOut]:
+) -> None:
     shopping_list = db.get(ShoppingList, list_id)
     if not shopping_list or not user_can_edit_list(current_user, shopping_list):
         raise HTTPException(status_code=404, detail="List not found")
 
-    recipe = db.get(Recipe, recipe_id)
-    if not recipe or not user_can_edit_recipe(current_user, recipe):
-        raise HTTPException(status_code=404, detail="Recipe not found")
-
-    list_users = list_participants(shopping_list)
-    recipe_users = recipe_participants(recipe)
-
-    leaking_to_others = list_users - recipe_users
-    if leaking_to_others:
-        raise HTTPException(
-            status_code=403,
-            detail="Cannot add ingredients from this recipe to a list that includes users without access to the recipe.",
+    recipe_items = db.scalars(
+        select(ShoppingItem).where(
+            ShoppingItem.list_id == list_id,
+            ShoppingItem.recipe_id == recipe_id,
         )
-
-    added: list[ShoppingItemOut] = []
-    for ing in recipe.ingredients:
-        added_item = create_or_merge_item(
-            db=db,
-            shopping_list=shopping_list,
-            data=ShoppingItemIn(
-                name=ing.name,
-                quantity=ing.quantity,
-                unit=ing.unit,
-                recipe_id=recipe_id,
-            ),
-        )
-        added.append(added_item)
-    return added
+    ).all()
+    for r_item in recipe_items:
+        db.delete(r_item)
+    db.commit()
+    return None

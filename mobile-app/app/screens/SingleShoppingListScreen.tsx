@@ -1,14 +1,39 @@
-import { View, Text, FlatList, StyleSheet, Pressable, TextInput, Alert, RefreshControl, Modal } from 'react-native';
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  Pressable,
+  TextInput,
+  Alert,
+  RefreshControl,
+  Modal,
+} from 'react-native';
 import { useState, useCallback } from 'react';
+import { useFocusEffect, useRoute } from '@react-navigation/native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+
 import type { ShoppingItemOut } from 'types/types';
-import { useFocusEffect } from '@react-navigation/native';
+import type { RootStackParamList } from 'App';
 import { useShoppingListApi } from 'api/shopping_lists';
 
-export default function ShoppingListScreen() {
+type Props = NativeStackScreenProps<RootStackParamList, 'ShoppingList'>;
+
+export default function SingleShoppingListScreen() {
+  const route = useRoute<Props['route']>();
+  const { listId } = route.params;
+
   const [items, setItems] = useState<ShoppingItemOut[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const { getShoppingList, addShoppingItem, patchShoppingItem, deleteShoppingItem, clearShoppingList } = useShoppingListApi();
+
+  const {
+    getShoppingListItems,
+    addShoppingItem,
+    patchShoppingItem,
+    deleteShoppingItem,
+    clearShoppingList,
+  } = useShoppingListApi();
 
   const [name, setName] = useState('');
   const [qty, setQty] = useState('1');
@@ -23,55 +48,64 @@ export default function ShoppingListScreen() {
   const load = async () => {
     setLoading(true);
     try {
-      const data = await getShoppingList();
+      const data = await getShoppingListItems(listId);
       setItems(data);
     } finally {
       setLoading(false);
     }
   };
 
-  useFocusEffect(useCallback(() => { load(); }, []));
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [listId]),
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    try { setItems(await getShoppingList()); }
-    finally { setRefreshing(false); }
-  }, []);
+    try {
+      setItems(await getShoppingListItems(listId));
+    } finally {
+      setRefreshing(false);
+    }
+  }, [listId]);
 
   const addItem = async () => {
     const n = name.trim();
     if (!n) return;
     const q = Number(qty);
     if (!Number.isFinite(q) || q <= 0) return;
-    const created = await addShoppingItem({ name: n, quantity: q, unit: unit.trim() });
-    setItems(await getShoppingList());
-    setName(''); setQty('1'); setUnit('');
+    await addShoppingItem(listId, { name: n, quantity: q, unit: unit.trim() });
+    setItems(await getShoppingListItems(listId));
+    setName('');
+    setQty('1');
+    setUnit('');
   };
 
   const toggleChecked = async (id: string, checked: boolean) => {
-    await patchShoppingItem(id, { checked });
-    setItems(await getShoppingList());
+    await patchShoppingItem(listId, id, { checked });
+    setItems(await getShoppingListItems(listId));
   };
 
   const editItem = async (id: string, by: number, current: number) => {
     const next = Math.max(0, current + by);
-    await patchShoppingItem(id, { quantity: next });
-    setItems(await getShoppingList());
+    await patchShoppingItem(listId, id, { quantity: next });
+    setItems(await getShoppingListItems(listId));
   };
 
   const removeItem = async (id: string) => {
-    await deleteShoppingItem(id);
-    setItems(await getShoppingList());
+    await deleteShoppingItem(listId, id);
+    setItems(await getShoppingListItems(listId));
   };
 
   const clearAll = async () => {
-    await clearShoppingList(false);
+    await clearShoppingList(listId, false);
     setItems([]);
   };
 
   const clearChecked = async () => {
-    await clearShoppingList(true);
-    setItems(await getShoppingList());
+    await clearShoppingList(listId, true);
+    setItems(await getShoppingListItems(listId));
   };
 
   const openEditModal = (item: ShoppingItemOut) => {
@@ -94,16 +128,16 @@ export default function ShoppingListScreen() {
     const q = Number(editQty);
     const u = editUnit.trim();
 
-    if (!n) return;                      // or show some validation
+    if (!n) return;
     if (!Number.isFinite(q) || q <= 0) return;
 
-    await patchShoppingItem(editingItem.id, {
+    await patchShoppingItem(listId, editingItem.id, {
       name: n,
       quantity: q,
       unit: u,
     });
 
-    setItems(await getShoppingList());
+    setItems(await getShoppingListItems(listId));
     closeEditModal();
   };
 
@@ -149,31 +183,63 @@ export default function ShoppingListScreen() {
   return (
     <View style={{ flex: 1, padding: 12 }}>
       <View style={s.addRow}>
-        <TextInput value={name} onChangeText={setName} placeholder="Item" style={[s.input, { flex: 2 }]} />
-        <TextInput value={qty} onChangeText={setQty} placeholder="Qty" keyboardType="numeric" style={[s.input, { width: 80 }]} />
-        <TextInput value={unit} onChangeText={setUnit} placeholder="Unit" style={[s.input, { flex: 1 }]} />
-        <Pressable onPress={addItem} style={s.addBtn}><Text style={{ color: '#fff' }}>Add</Text></Pressable>
+        <TextInput
+          value={name}
+          onChangeText={setName}
+          placeholder="Item"
+          style={[s.input, { flex: 2 }]}
+        />
+        <TextInput
+          value={qty}
+          onChangeText={setQty}
+          placeholder="Qty"
+          keyboardType="numeric"
+          style={[s.input, { width: 80 }]}
+        />
+        <TextInput
+          value={unit}
+          onChangeText={setUnit}
+          placeholder="Unit"
+          style={[s.input, { flex: 1 }]}
+        />
+        <Pressable onPress={addItem} style={s.addBtn}>
+          <Text style={{ color: '#fff' }}>Add</Text>
+        </Pressable>
       </View>
 
       <FlatList
         data={items}
         keyExtractor={(i) => i.id}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
         renderItem={({ item }) => <Row item={item} />}
-        ListEmptyComponent={!loading ? <Text style={{ padding: 12, color: '#6b7280' }}>Your list is empty.</Text> : null}
+        ListEmptyComponent={
+          !loading ? (
+            <Text style={{ padding: 12, color: '#6b7280' }}>
+              Your list is empty.
+            </Text>
+          ) : null
+        }
       />
 
       <View style={s.footer}>
-        <Pressable onPress={clearChecked} style={[s.footerBtn, s.ghost]}><Text>Clear checked</Text></Pressable>
-        <Pressable onPress={() => {
-          Alert.alert('Clear all?', 'This will removeItem all items.', [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Clear', style: 'destructive', onPress: clearAll },
-          ]);
-        }} style={[s.footerBtn, s.danger]}>
+        <Pressable onPress={clearChecked} style={[s.footerBtn, s.ghost]}>
+          <Text>Clear checked</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => {
+            Alert.alert('Clear all?', 'This will remove all items.', [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Clear', style: 'destructive', onPress: clearAll },
+            ]);
+          }}
+          style={[s.footerBtn, s.danger]}
+        >
           <Text style={{ color: '#fff' }}>Clear all</Text>
         </Pressable>
       </View>
+
       <Modal
         visible={editVisible}
         animationType="slide"
@@ -207,10 +273,16 @@ export default function ShoppingListScreen() {
             />
 
             <View style={s.modalActions}>
-              <Pressable onPress={closeEditModal} style={[s.footerBtn, s.ghost]}>
+              <Pressable
+                onPress={closeEditModal}
+                style={[s.footerBtn, s.ghost]}
+              >
                 <Text>Cancel</Text>
               </Pressable>
-              <Pressable onPress={saveEdit} style={[s.footerBtn, s.addBtn]}>
+              <Pressable
+                onPress={saveEdit}
+                style={[s.footerBtn, s.addBtn]}
+              >
                 <Text style={{ color: '#fff' }}>Save</Text>
               </Pressable>
             </View>
@@ -223,11 +295,40 @@ export default function ShoppingListScreen() {
 
 const s = StyleSheet.create({
   addRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
-  input: { borderWidth: 1, borderColor: '#d1d5db', paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, backgroundColor: '#fff' },
-  addBtn: { backgroundColor: '#111827', paddingHorizontal: 14, justifyContent: 'center', borderRadius: 8 },
-
-  row: { flexDirection: 'row', alignItems: 'center', padding: 10, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, marginBottom: 8, backgroundColor: '#fff', gap: 10 },
-  checkbox: { width: 24, height: 24, borderWidth: 1.5, borderColor: '#9ca3af', borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
+  input: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#fff',
+  },
+  addBtn: {
+    backgroundColor: '#111827',
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+    borderRadius: 8,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 10,
+    marginBottom: 8,
+    backgroundColor: '#fff',
+    gap: 10,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderWidth: 1.5,
+    borderColor: '#9ca3af',
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   checkboxOn: { backgroundColor: '#111827', borderColor: '#111827' },
   checkboxText: { color: '#111827' },
   checkboxTextOn: { color: '#fff' },
@@ -235,14 +336,34 @@ const s = StyleSheet.create({
   meta: { color: '#374151' },
   strike: { textDecorationLine: 'line-through', color: '#9ca3af' },
   qBtns: { flexDirection: 'row', gap: 8 },
-  smallBtn: { borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 6 },
-  deleteBtn: { backgroundColor: '#dc2626', paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8 },
-
-  footer: { flexDirection: 'row', gap: 10, justifyContent: 'space-between', marginTop: 8 },
+  smallBtn: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  deleteBtn: {
+    backgroundColor: '#dc2626',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  footer: {
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
   footerBtn: { flex: 1, alignItems: 'center', padding: 12, borderRadius: 10 },
   ghost: { backgroundColor: '#f3f4f6' },
   danger: { backgroundColor: '#dc2626' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', padding: 24 },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    padding: 24,
+  },
   modalCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, gap: 10 },
   modalTitle: { fontSize: 18, fontWeight: '600', marginBottom: 4 },
   modalActions: { flexDirection: 'row', gap: 10, marginTop: 8 },

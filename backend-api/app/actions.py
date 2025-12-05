@@ -10,8 +10,15 @@ from app.models.user import User
 from app.schemas.shopping_item import ShoppingItemIn
 
 
-def normalize_key(name: str, unit: str) -> tuple[str, str]:
-    return name.strip().lower(), unit.strip().lower()
+def normalize_key(name: str, unit: str | None) -> tuple[str, str]:
+    name_norm = name.strip().lower()
+
+    if unit is None:
+        unit_norm = ""
+    else:
+        unit_norm = unit.strip().lower()
+
+    return name_norm, unit_norm
 
 
 def create_or_merge_item(
@@ -32,11 +39,14 @@ def create_or_merge_item(
         db.refresh(existing)
         return existing
 
+    clean_name = data.name.strip()
+    clean_unit = data.unit.strip() if data.unit is not None else None
+
     new_item = ShoppingItem(
         user_id=shopping_list.user_id,
         list_id=shopping_list.id,
-        name=data.name.strip(),
-        unit=data.unit.strip(),
+        name=clean_name,
+        unit=clean_unit,
         quantity=data.quantity,
         checked=False,
         recipe_id=data.recipe_id if data.recipe_id else None,
@@ -54,7 +64,7 @@ def _find_and_merge_existing(
     db: Session,
     list_id: UUID,
     name: str,
-    unit: str,
+    unit: str | None,
     quantity: float,
     recipe_id: UUID | None = None,
     exclude_item_id: UUID | None = None,

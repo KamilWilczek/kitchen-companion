@@ -248,8 +248,11 @@ def update_item(
     if "name" in data and data["name"] is not None:
         target_name = data["name"].strip()
 
-    if "unit" in data and data["unit"] is not None:
-        target_unit = data["unit"].strip()
+    if "unit" in data:
+        if data["unit"] is None:
+            target_unit = None
+        else:
+            target_unit = data["unit"].strip()
 
     if "quantity" in data and data["quantity"] is not None:
         item.quantity = data["quantity"]

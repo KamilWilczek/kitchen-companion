@@ -5,6 +5,7 @@ import pytest
 from app.models.recipe import Ingredient, Recipe
 from app.models.shopping_item import ShoppingItem, ShoppingList
 from app.models.user import User
+from app.schemas.shopping_item import VALID_UNITS
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
@@ -97,6 +98,60 @@ class TestShoppingLists:
         body = response.json()
         names = {item["name"] for item in body}
         assert names == {"List 1", "List 2"}
+
+    def test_get_shopping_lists_item_counts(
+        self,
+        client: TestClient,
+        auth_headers: dict[str, str],
+        shopping_list_factory: t.Callable[..., ShoppingList],
+        shopping_item_factory: t.Callable[..., ShoppingItem],
+        db_session: Session,
+    ) -> None:
+        shopping_list = shopping_list_factory(name="Counted list")
+        shopping_item_factory(
+            name="Item 1",
+            quantity=1.0,
+            unit="kg",
+            checked=True,
+            shopping_list=shopping_list,
+        )
+        shopping_item_factory(
+            name="Item 2",
+            quantity=2.0,
+            unit="kg",
+            checked=False,
+            shopping_list=shopping_list,
+        )
+        shopping_item_factory(
+            name="Item 3",
+            quantity=3.0,
+            unit="kg",
+            checked=True,
+            shopping_list=shopping_list,
+        )
+
+        other_list = shopping_list_factory(name="Other list")
+        shopping_item_factory(
+            name="Other item",
+            quantity=1.0,
+            unit="kg",
+            checked=False,
+            shopping_list=other_list,
+        )
+        db_session.commit()
+
+        response = client.get("/shopping-lists", headers=auth_headers)
+
+        assert response.status_code == 200
+        body = response.json()
+        counted = next(sl for sl in body if sl["name"] == "Counted list")
+        other = next(sl for sl in body if sl["name"] == "Other list")
+
+        assert counted["total_items"] == 3
+        assert counted["checked_items"] == 2
+
+        assert other["total_items"] == 1
+        assert other["checked_items"] == 0
 
     def test_get_shopping_list_404_when_not_found(
         self,
@@ -298,7 +353,7 @@ class TestShoppingLists:
             name="Milk", quantity=1.0, unit="l", shopping_list=shopping_list
         )
         shopping_item_factory(
-            name="Bread", quantity=2.0, unit="pc", shopping_list=shopping_list
+            name="Bread", quantity=2.0, unit="szt.", shopping_list=shopping_list
         )
 
         response = client.get(
@@ -326,7 +381,7 @@ class TestShoppingLists:
         db_session.commit()
 
         shopping_item_factory(
-            name="Eggs", quantity=12.0, unit="pc", shopping_list=shopping_list
+            name="Eggs", quantity=12.0, unit="szt.", shopping_list=shopping_list
         )
         shopping_item_factory(
             name="Butter", quantity=200.0, unit="g", shopping_list=shopping_list
@@ -514,6 +569,7 @@ class TestShoppingLists:
         auth_headers: dict[str, str],
         db_session: Session,
         shopping_list_factory: t.Callable[..., ShoppingList],
+        shopping_item_factory: t.Callable[..., ShoppingItem],
     ) -> None:
         my_list = shopping_list_factory()
 
@@ -526,15 +582,8 @@ class TestShoppingLists:
         db_session.flush()
         db_session.refresh(other_list)
 
-        other_item = ShoppingItem(
-            user_id=other_user.id,
-            list_id=other_list.id,
-            name="Secret",
-            unit="pc",
-            quantity=1.0,
-            checked=False,
-            name_norm="secret",
-            unit_norm="pc",
+        other_item = shopping_item_factory(
+            name="Not my item", quantity=1.0, unit="kg", shopping_list=other_list
         )
         db_session.add(other_item)
         db_session.commit()
@@ -563,7 +612,7 @@ class TestShoppingLists:
         shopping_list.shared_with_users.append(current_user)
         db_session.commit()
         item = shopping_item_factory(
-            name="Old name", quantity=1.0, unit="pc", shopping_list=shopping_list
+            name="Old name", quantity=1.0, unit="kg", shopping_list=shopping_list
         )
         payload = {"name": "New name"}
 
@@ -676,7 +725,7 @@ class TestShoppingLists:
     ) -> None:
         shopping_list = shopping_list_factory()
         item = shopping_item_factory(
-            name="To delete", quantity=1.0, unit="pc", shopping_list=shopping_list
+            name="To delete", quantity=1.0, unit="kg", shopping_list=shopping_list
         )
 
         response = client.delete(
@@ -720,7 +769,7 @@ class TestShoppingLists:
         db_session.commit()
 
         item = shopping_item_factory(
-            name="To delete", quantity=1.0, unit="pc", shopping_list=shopping_list
+            name="To delete", quantity=1.0, unit="kg", shopping_list=shopping_list
         )
 
         response = client.delete(
@@ -750,7 +799,7 @@ class TestShoppingLists:
         shopping_item_factory(
             name="Bread",
             quantity=2.0,
-            unit="pc",
+            unit="szt.",
             checked=True,
             shopping_list=shopping_list,
         )
@@ -786,7 +835,7 @@ class TestShoppingLists:
         shopping_item_factory(
             name="Bread",
             quantity=2.0,
-            unit="pc",
+            unit="szt.",
             checked=True,
             shopping_list=shopping_list,
         )
@@ -829,7 +878,7 @@ class TestShoppingLists:
         shopping_item_factory(
             name="Bread",
             quantity=2.0,
-            unit="pc",
+            unit="szt.",
             checked=True,
             shopping_list=shopping_list,
         )
@@ -1051,3 +1100,79 @@ class TestShoppingLists:
         assert res.status_code == 403
         detail = res.json().get("detail", "").lower()
         assert "recipe" in detail or "access" in detail
+
+    def test_add_item_without_unit(
+        self,
+        client: TestClient,
+        auth_headers: dict[str, str],
+        db_session: Session,
+        shopping_list_factory: t.Callable[..., ShoppingList],
+    ) -> None:
+        shopping_list = shopping_list_factory()
+
+        payload = {
+            "name": "Eggs",
+            "quantity": 12.0,
+        }
+
+        response = client.post(
+            f"/shopping-lists/{shopping_list.id}/items",
+            json=payload,
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+
+        assert body["name"] == "Eggs"
+        assert body["quantity"] == 12.0
+        assert body["unit"] is None
+        assert body["checked"] is False
+        assert body["recipe_id"] is None
+
+        item_id = UUID(body["id"])
+        db_item = db_session.get(ShoppingItem, item_id)
+        assert db_item is not None
+        assert db_item.name == "Eggs"
+        assert db_item.quantity == 12.0
+        assert db_item.unit is None
+
+    @pytest.mark.parametrize("unit", VALID_UNITS)
+    def test_add_item_with_valid_unit(
+        self, client: TestClient, auth_headers, shopping_list_factory, unit: str
+    ):
+        shopping_list = shopping_list_factory(name=f"List {unit}")
+
+        resp = client.post(
+            f"/shopping-lists/{shopping_list.id}/items",
+            headers=auth_headers,
+            json={
+                "name": "Sugar",
+                "quantity": 1.0,
+                "unit": unit,
+            },
+        )
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["unit"] == unit
+
+    def test_add_item_with_invalid_unit_returns_422(
+        self,
+        client: TestClient,
+        auth_headers,
+        shopping_list_factory,
+    ):
+        shopping_list = shopping_list_factory(name="Bad unit list")
+
+        resp = client.post(
+            f"/shopping-lists/{shopping_list.id}/items",
+            headers=auth_headers,
+            json={
+                "name": "Milk",
+                "quantity": 1.0,
+                "unit": "pcs",
+            },
+        )
+
+        assert resp.status_code == 422

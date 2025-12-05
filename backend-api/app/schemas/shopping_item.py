@@ -1,12 +1,25 @@
+from enum import Enum
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
 
+class Unit(str, Enum):
+    L = "l"
+    KG = "kg"
+    ML = "ml"
+    G = "g"
+    SZT = "szt."
+    OP = "op."
+
+
+VALID_UNITS: tuple[str, ...] = tuple(unit.value for unit in Unit)
+
+
 class ShoppingItemIn(BaseModel):
     name: str
     quantity: float
-    unit: str
+    unit: Unit | None = None
     recipe_id: UUID | None = None
 
 
@@ -19,7 +32,7 @@ class ShoppingItemOut(ShoppingItemIn):
 
 class ShoppingItemUpdate(BaseModel):
     name: str | None = None
-    unit: str | None = None
+    unit: Unit | None = None
     quantity: float | None = None
     checked: bool | None = None
     recipe_id: UUID | None = None
@@ -43,6 +56,8 @@ class ShoppingListIn(ShoppingListBase):
 
 class ShoppingListOut(ShoppingListBase):
     id: UUID
+    total_items: int
+    checked_items: int
 
     model_config = ConfigDict(from_attributes=True)
 

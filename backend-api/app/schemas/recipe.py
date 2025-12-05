@@ -43,6 +43,6 @@ class RecipeOut(RecipeBase):
 
 
 class RecipeShareIn(BaseModel):
-    shared_with_id: UUID
+    shared_with_email: UUID
 
     model_config = ConfigDict(extra="forbid")

@@ -1,7 +1,7 @@
 from enum import Enum
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
 
 
 class Unit(str, Enum):
@@ -54,10 +54,22 @@ class ShoppingListIn(ShoppingListBase):
     model_config = ConfigDict(extra="forbid")
 
 
+class ShoppingListShareIn(BaseModel):
+    shared_with_email: EmailStr
+
+
+class SharedUserOut(BaseModel):
+    id: UUID
+    email: EmailStr
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ShoppingListOut(ShoppingListBase):
     id: UUID
     total_items: int
     checked_items: int
+    shared_with_users: list[SharedUserOut] = []
 
     model_config = ConfigDict(from_attributes=True)
 

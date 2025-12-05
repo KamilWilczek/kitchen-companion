@@ -135,10 +135,10 @@ def share_recipe(
     if not recipe:
         raise HTTPException(status_code=404, detail="Recipe not found")
 
-    if payload.shared_with_id == current_user.id:
+    if payload.shared_with_email == current_user.id:
         raise HTTPException(status_code=400, detail="Cannot share recipe with yourself")
 
-    shared_user = db.scalar(select(User).where(User.id == payload.shared_with_id))
+    shared_user = db.scalar(select(User).where(User.email == payload.shared_with_email))
     if not shared_user:
         raise HTTPException(status_code=404, detail="User to share with not found")
 

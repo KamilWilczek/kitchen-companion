@@ -15,6 +15,7 @@ from app.schemas.shopping_item import (
     ShoppingItemUpdate,
     ShoppingListIn,
     ShoppingListOut,
+    ShoppingListShareIn,
     ShoppingListUpdate,
 )
 from fastapi import APIRouter, Body, Depends, HTTPException
@@ -122,7 +123,7 @@ def delete_shopping_list(
 @router.post("/{list_id}/share", status_code=204)
 def share_shopping_list(
     list_id: UUID,
-    payload: ShoppingListIn,
+    payload: ShoppingListShareIn,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> None:
@@ -135,10 +136,10 @@ def share_shopping_list(
     if not shopping_list:
         raise HTTPException(status_code=404, detail="List not found")
 
-    if payload.shared_with_id == current_user.id:
+    if payload.shared_with_email == current_user.id:
         raise HTTPException(status_code=400, detail="Cannot share list with yourself")
 
-    shared_user = db.scalar(select(User).where(User.id == payload.shared_with_id))
+    shared_user = db.scalar(select(User).where(User.email == payload.shared_with_email))
     if not shared_user:
         raise HTTPException(status_code=404, detail="User to share with not found")
 

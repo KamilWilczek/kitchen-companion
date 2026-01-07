@@ -16,6 +16,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ShoppingItemOut } from 'types/types';
 import type { RootStackParamList } from 'App';
 import { useShoppingListApi } from 'api/shopping_lists';
+import UnitSelect from '@app/components/UnitSelect';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ShoppingList'>;
 
@@ -196,11 +197,10 @@ export default function SingleShoppingListScreen() {
           keyboardType="numeric"
           style={[s.input, { width: 80 }]}
         />
-        <TextInput
+        <UnitSelect
           value={unit}
-          onChangeText={setUnit}
-          placeholder="Unit"
-          style={[s.input, { flex: 1 }]}
+          onChange={setUnit}
+          containerStyle={{ flex: 1 }}
         />
         <Pressable onPress={addItem} style={s.addBtn}>
           <Text style={{ color: '#fff' }}>Add</Text>
@@ -265,11 +265,10 @@ export default function SingleShoppingListScreen() {
               style={s.input}
             />
 
-            <TextInput
+            <UnitSelect
               value={editUnit}
-              onChangeText={setEditUnit}
-              placeholder="Unit"
-              style={s.input}
+              onChange={setEditUnit}
+              containerStyle={{ marginTop: 4 }}
             />
 
             <View style={s.modalActions}>
@@ -294,7 +293,7 @@ export default function SingleShoppingListScreen() {
 }
 
 const s = StyleSheet.create({
-  addRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  addRow: { flexDirection: 'row', gap: 8, marginBottom: 12, position: 'relative', zIndex: 10 },
   input: {
     borderWidth: 1,
     borderColor: '#d1d5db',

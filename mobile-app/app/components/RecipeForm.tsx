@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, Pressable, FlatList, StyleSheet, Alert, Platform, KeyboardAvoidingView, ActivityIndicator, ScrollView } from 'react-native';
 import { useTagsApi } from 'api/tags';
 import type { Ingredient, RecipeIn, TagOut } from 'types/types';
+import UnitSelect from './UnitSelect';
 
 type RecipeFormInitial = Partial<RecipeIn> & { tags?: TagOut[] };
 type Props = {
@@ -101,7 +102,7 @@ export default function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
             data={ingredients}
             keyExtractor={(_, i) => String(i)}
             renderItem={({ item, index }) => (
-              <View style={s.row}>
+              <View style={[s.row, { zIndex: ingredients.length - index },]}>
                 <TextInput
                   style={[s.input, s.flex2]}
                   placeholder="name"
@@ -115,11 +116,10 @@ export default function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
                   value={String(item.quantity ?? 0)}
                   onChangeText={t => updateIngredient(index, { quantity: Number(t) || 0 })}
                 />
-                <TextInput
-                  style={[s.input, s.flex1]}
-                  placeholder="unit"
+                <UnitSelect
                   value={item.unit}
-                  onChangeText={t => updateIngredient(index, { unit: t })}
+                  onChange={t => updateIngredient(index, { unit: t })}
+                  containerStyle={{ flex: 1 }}
                 />
                 <Pressable onPress={() => removeRow(index)} style={s.iconBtn}><Text style={s.icon}>✕</Text></Pressable>
               </View>
@@ -163,7 +163,7 @@ export default function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
 const s = StyleSheet.create({
   label: { fontSize: 16, fontWeight: '600' },
   input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8, position: 'relative'},
   flex1: { flex: 1 }, flex2: { flex: 2 },
   iconBtn: { paddingHorizontal: 10, paddingVertical: 8 }, icon: { fontSize: 18 },
   button: { backgroundColor: '#111827', paddingVertical: 14, borderRadius: 10, alignItems: 'center' },

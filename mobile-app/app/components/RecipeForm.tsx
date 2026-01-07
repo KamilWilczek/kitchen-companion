@@ -13,10 +13,9 @@ type Props = {
   initial?: Partial<RecipeFormInitial>;
   submitLabel: string;
   onSubmit: (recipe: RecipeIn) => Promise<void> | void;
-    // ✅ optional: enables checkboxes UI
   selectIngredients?: IngredientSelection;
 
-  // ✅ optional: disable editing while in select mode (recommended)
+  // optional: disable editing while in select mode (recommended)
   ingredientsReadOnly?: boolean;
 };
 

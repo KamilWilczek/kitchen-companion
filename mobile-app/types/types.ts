@@ -1,6 +1,7 @@
 export type UUID = string;
 
 export interface Ingredient {
+  id: UUID;
   name: string;
   quantity: number;
   unit: string;

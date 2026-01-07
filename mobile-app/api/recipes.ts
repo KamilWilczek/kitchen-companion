@@ -1,4 +1,4 @@
-import { RecipeIn, RecipeOut } from '../types/types';
+import { RecipeIn, RecipeOut, ShoppingItemOut } from '../types/types';
 import { useApi } from './useApi';
 
 
@@ -15,5 +15,21 @@ export function useRecipesApi() {
       body: JSON.stringify(recipe),
     }),
     deleteRecipe: (id: string) => api<void>(`/recipes/${id}`, { method: "DELETE" }),
-  }
+    addFromRecipe: (listId: string, recipeId: string) =>
+      api<ShoppingItemOut[]>(`/recipes/${listId}/from-recipe/${recipeId}`, {
+        method: 'POST',
+      }),
+    addSelectedIngredientsToList: (
+      recipeId: string,
+      listId: string,
+      ingredientIds: string[],
+    ) =>
+      api<ShoppingItemOut[]>(
+        `/recipes/${recipeId}/shopping-lists/${listId}/items`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ ingredient_ids: ingredientIds }),
+        },
+      ),
+  };
 }

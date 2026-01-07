@@ -5,15 +5,26 @@ import type { Ingredient, RecipeIn, TagOut } from 'types/types';
 import UnitSelect from './UnitSelect';
 
 type RecipeFormInitial = Partial<RecipeIn> & { tags?: TagOut[] };
+type IngredientSelection = {
+  selectedIds: Set<string>;
+  onToggle: (id: string) => void;
+};
 type Props = {
   initial?: Partial<RecipeFormInitial>;
   submitLabel: string;
   onSubmit: (recipe: RecipeIn) => Promise<void> | void;
+    // ✅ optional: enables checkboxes UI
+  selectIngredients?: IngredientSelection;
+
+  // ✅ optional: disable editing while in select mode (recommended)
+  ingredientsReadOnly?: boolean;
 };
 
 
 
-export default function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
+
+
+export default function RecipeForm({ initial, submitLabel, onSubmit, selectIngredients, ingredientsReadOnly }: Props) {
   const { listTags } = useTagsApi();
   const [title, setTitle] = useState(initial?.title ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
@@ -21,7 +32,7 @@ export default function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
   const [ingredients, setIngredients] = useState<Ingredient[]>(
     initial?.ingredients && initial.ingredients.length
       ? initial.ingredients
-      : [{ name: '', quantity: 0, unit: '' }]
+      : [{ id: '', name: '', quantity: 0, unit: '' }]
   );
 
   const [allTags, setAllTags] = useState<TagOut[] | null>(null);
@@ -47,7 +58,7 @@ export default function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
 
   const updateIngredient = (i: number, patch: Partial<Ingredient>) =>
     setIngredients(prev => prev.map((row, idx) => (idx === i ? { ...row, ...patch } : row)));
-  const addRow = () => setIngredients(prev => [...prev, { name: '', quantity: 0, unit: '' }]);
+  const addRow = () => setIngredients(prev => [...prev, { id: '', name: '', quantity: 0, unit: '' }]);
   const removeRow = (i: number) => setIngredients(prev => (prev.length > 1 ? prev.filter((_, idx) => idx !== i) : prev));
 
   const toggleTag = (id: string) => setSelectedTagIds(prev => (prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]));
@@ -65,6 +76,7 @@ export default function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
         description: description.trim(),
         source: source.trim() || undefined,
         ingredients: ingredients.map(i => ({
+          id: i.id,
           name: i.name.trim(),
           quantity: Number.isFinite(i.quantity) ? i.quantity : 0,
           unit: i.unit.trim(),
@@ -103,6 +115,24 @@ export default function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
             keyExtractor={(_, i) => String(i)}
             renderItem={({ item, index }) => (
               <View style={[s.row, { zIndex: ingredients.length - index },]}>
+                {selectIngredients && item.id ? (
+                  <Pressable
+                    onPress={() => selectIngredients.onToggle(item.id)}
+                    style={{
+                      width: 24, height: 24,
+                      borderWidth: 1.5,
+                      borderColor: selectIngredients.selectedIds.has(item.id) ? '#111827' : '#9ca3af',
+                      borderRadius: 6,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: selectIngredients.selectedIds.has(item.id) ? '#111827' : '#fff',
+                    }}
+                  >
+                    <Text style={{ color: '#fff', fontWeight: '900' }}>
+                      {selectIngredients.selectedIds.has(item.id) ? '✓' : ''}
+                    </Text>
+                  </Pressable>
+                ) : null}
                 <TextInput
                   style={[s.input, s.flex2]}
                   placeholder="name"

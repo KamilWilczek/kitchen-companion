@@ -9,10 +9,10 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useTagsApi } from 'api/tags';
-import type { Ingredient, RecipeIn, TagOut } from 'types/types';
+import type { IngredientIn, RecipeIn, TagOut, IngredientOut, RecipeOut } from 'types/types';
 import UnitSelect from './UnitSelect';
 
-type RecipeFormInitial = Partial<RecipeIn> & { tags?: TagOut[] };
+type RecipeFormInitial = Partial<RecipeOut> & { tags?: TagOut[] };
 
 type IngredientSelection = {
   selectedIds: Set<string>;
@@ -27,7 +27,7 @@ type Props = {
 
   ingredientsReadOnly?: boolean;
   mode?: 'full' | 'ingredients-only';
-  onIngredientsChange?: (next: Ingredient[]) => void;
+  onIngredientsChange?: (next: IngredientOut[]) => void;
 };
 
 export default function RecipeForm({
@@ -45,7 +45,7 @@ export default function RecipeForm({
   const [description, setDescription] = useState(initial?.description ?? '');
   const [source, setSource] = useState(initial?.source ?? '');
 
-  const [ingredients, setIngredients] = useState<Ingredient[]>(
+  const [ingredients, setIngredients] = useState<IngredientOut[]>(
     initial?.ingredients && initial.ingredients.length
       ? initial.ingredients
       : [{ id: '', name: '', quantity: 0, unit: '' }],
@@ -87,7 +87,7 @@ export default function RecipeForm({
     return ingredients.every((i) => i.name.trim());
   }, [ingredients, isFull, title]);
 
-  const updateIngredient = (i: number, patch: Partial<Ingredient>) => {
+  const updateIngredient = (i: number, patch: Partial<IngredientOut>) => {
     if (ingredientsReadOnly) return;
     setIngredients((prev) =>
       prev.map((row, idx) => (idx === i ? { ...row, ...patch } : row)),

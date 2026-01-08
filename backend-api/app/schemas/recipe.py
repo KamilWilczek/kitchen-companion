@@ -18,6 +18,12 @@ class IngredientOut(Ingredient):
     model_config = ConfigDict(from_attributes=True)
 
 
+class IngredientPatchIn(Ingredient):
+    id: UUID | None = None
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class IngredientsToShoppingList(BaseModel):
     ingredient_ids: list[UUID] = Field(default_factory=list)
 
@@ -43,7 +49,7 @@ class RecipePatch(BaseModel):
     title: str | None = None
     description: str | None = None
     source: str | None = None
-    ingredients: list[Ingredient] | None = None
+    ingredients: list[IngredientPatchIn] | None = None
     tag_ids: list[UUID] | None = None
 
     model_config = ConfigDict(extra="forbid")

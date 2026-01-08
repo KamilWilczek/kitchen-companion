@@ -1,12 +1,17 @@
 export type UUID = string;
 
-export interface Ingredient {
+export interface IngredientOut {
   id: UUID;
   name: string;
   quantity: number;
   unit: string;
 }
 
+export interface IngredientIn {
+  name: string;
+  quantity: number;
+  unit: string;
+}
 export interface TagOut {
   id: UUID;
   name: string;
@@ -16,12 +21,17 @@ export interface RecipeIn {
   title: string;
   description: string;
   source?: string | null;
-  ingredients: Ingredient[];
+  ingredients: IngredientIn[];
   tag_ids: UUID[];
 }
 
-export interface RecipeOut extends RecipeIn {
+export interface RecipeOut {
   id: UUID;
+  title: string;
+  description: string;
+  source?: string | null;
+  ingredients: IngredientOut[];
+  tag_ids: UUID[];
   tags: TagOut[];
 }
 

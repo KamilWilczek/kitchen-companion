@@ -1,35 +1,50 @@
 from uuid import UUID
 
 from app.schemas.tag import TagOut
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class Ingredient(BaseModel):
     name: str
-    quantity: float
-    unit: str
+    quantity: float = 0
+    unit: str = ""
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(extra="forbid")
 
 
 class IngredientOut(Ingredient):
     id: UUID
 
+    model_config = ConfigDict(from_attributes=True)
+
 
 class IngredientsToShoppingList(BaseModel):
-    ingredient_ids: list[UUID]
+    ingredient_ids: list[UUID] = Field(default_factory=list)
+
+    model_config = ConfigDict(extra="forbid")
 
 
 class RecipeBase(BaseModel):
     title: str
     description: str
-    ingredients: list[Ingredient]
     source: str | None = None
+
+    model_config = ConfigDict(extra="forbid")
 
 
 class RecipeIn(RecipeBase):
-    ingredients: list[Ingredient]
-    tag_ids: list[UUID] = []
+    ingredients: list[Ingredient] = Field(default_factory=list)
+    tag_ids: list[UUID] = Field(default_factory=list)
+
+
+class RecipePatch(BaseModel):
+    # None => don't change
+    # []   => clear (for list fields)
+    title: str | None = None
+    description: str | None = None
+    source: str | None = None
+    ingredients: list[Ingredient] | None = None
+    tag_ids: list[UUID] | None = None
 
     model_config = ConfigDict(extra="forbid")
 
@@ -43,6 +58,6 @@ class RecipeOut(RecipeBase):
 
 
 class RecipeShareIn(BaseModel):
-    shared_with_email: UUID
+    shared_with_email: str
 
     model_config = ConfigDict(extra="forbid")

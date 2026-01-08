@@ -17,6 +17,7 @@ from app.schemas.recipe import (
     IngredientsToShoppingList,
     RecipeIn,
     RecipeOut,
+    RecipePatch,
     RecipeShareIn,
 )
 from app.schemas.shopping_item import ShoppingItemIn, ShoppingItemOut
@@ -97,6 +98,42 @@ def update_recipe(
         recipe.tags = db.scalars(select(Tag).where(Tag.id.in_(recipe_in.tag_ids))).all()
     else:
         recipe.tags = []
+
+    db.commit()
+    db.refresh(recipe)
+    return recipe
+
+
+@router.patch("/{recipe_id}", response_model=RecipeOut)
+def patch_recipe(
+    recipe_id: UUID,
+    patch: RecipePatch,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> RecipeOut:
+    recipe = db.get(Recipe, recipe_id)
+    if not recipe or not user_can_edit_recipe(current_user, recipe):
+        raise HTTPException(status_code=404, detail="Recipe not found")
+
+    if patch.title is not None:
+        recipe.title = patch.title
+    if patch.description is not None:
+        recipe.description = patch.description
+    if patch.source is not None:
+        recipe.source = patch.source
+
+    if patch.ingredients is not None:
+        recipe.ingredients.clear()
+        recipe.ingredients.extend(
+            Ingredient(name=ing.name, quantity=ing.quantity, unit=ing.unit)
+            for ing in patch.ingredients
+        )
+
+    if patch.tag_ids is not None:
+        if patch.tag_ids:
+            recipe.tags = db.scalars(select(Tag).where(Tag.id.in_(patch.tag_ids))).all()
+        else:
+            recipe.tags = []
 
     db.commit()
     db.refresh(recipe)

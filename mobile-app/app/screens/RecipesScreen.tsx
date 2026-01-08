@@ -74,7 +74,7 @@ const load = async () => {
             style={styles.card}
           >
             <Text style={styles.title}>{item.title}</Text>
-            {!!item.description && <Text style={styles.desc}>{item.description}</Text>}
+            {!!item.source && <Text style={styles.source}>{item.source}</Text>}
           </Pressable>
         )}
         ListEmptyComponent={<Text>No recipes yet. Tap “＋” to add one.</Text>}
@@ -88,5 +88,5 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   card: { padding: 12, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, marginBottom: 10, backgroundColor: '#fff' },
   title: { fontWeight: '700', fontSize: 16, marginBottom: 4 },
-  desc: { color: '#374151' },
+  source: { color: '#374151' },
 });

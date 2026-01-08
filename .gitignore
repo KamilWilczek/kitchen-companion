@@ -20,8 +20,8 @@ Thumbs.db
 *.sqlite3
 .vscode/
 __pycache__/
-ideas.txt
-structure.md
+notes
 dev.db
 test.db
 backend-api/test.db
+.idea

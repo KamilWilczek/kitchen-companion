@@ -1,80 +1,136 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, Pressable, FlatList, StyleSheet, Alert, Platform, KeyboardAvoidingView, ActivityIndicator, ScrollView } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
 import { useTagsApi } from 'api/tags';
 import type { Ingredient, RecipeIn, TagOut } from 'types/types';
 import UnitSelect from './UnitSelect';
 
 type RecipeFormInitial = Partial<RecipeIn> & { tags?: TagOut[] };
+
 type IngredientSelection = {
   selectedIds: Set<string>;
   onToggle: (id: string) => void;
 };
+
 type Props = {
   initial?: Partial<RecipeFormInitial>;
-  submitLabel: string;
-  onSubmit: (recipe: RecipeIn) => Promise<void> | void;
+  submitLabel?: string; // optional now (ingredients-only doesn’t need it)
+  onSubmit?: (recipe: RecipeIn) => Promise<void> | void; // optional now
   selectIngredients?: IngredientSelection;
 
-  // optional: disable editing while in select mode (recommended)
   ingredientsReadOnly?: boolean;
+  mode?: 'full' | 'ingredients-only';
+  onIngredientsChange?: (next: Ingredient[]) => void;
 };
 
-
-
-
-
-export default function RecipeForm({ initial, submitLabel, onSubmit, selectIngredients, ingredientsReadOnly }: Props) {
+export default function RecipeForm({
+  initial,
+  submitLabel = 'Save',
+  onSubmit,
+  selectIngredients,
+  ingredientsReadOnly = false,
+  mode = 'full',
+  onIngredientsChange,
+}: Props) {
   const { listTags } = useTagsApi();
+
   const [title, setTitle] = useState(initial?.title ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
   const [source, setSource] = useState(initial?.source ?? '');
+
   const [ingredients, setIngredients] = useState<Ingredient[]>(
     initial?.ingredients && initial.ingredients.length
       ? initial.ingredients
-      : [{ id: '', name: '', quantity: 0, unit: '' }]
+      : [{ id: '', name: '', quantity: 0, unit: '' }],
   );
 
   const [allTags, setAllTags] = useState<TagOut[] | null>(null);
-  const initialTagIds: string[] = (initial?.tag_ids ?? (initial?.tags ? initial.tags.map(t => t.id) : []));
+  const initialTagIds: string[] =
+    initial?.tag_ids ?? (initial?.tags ? initial.tags.map((t) => t.id) : []);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(initialTagIds);
 
   const [saving, setSaving] = useState(false);
 
+  const isFull = mode === 'full';
+
   useEffect(() => {
+    if (!isFull) return;
+
     let mounted = true;
     (async () => {
       try {
         const tags = await listTags();
         if (mounted) setAllTags(tags);
-      } catch (e) {
+      } catch {
         if (mounted) setAllTags([]);
       }
     })();
-    return () => { mounted = false; }
-  }, []);
 
-  const canSave = title.trim() && ingredients.every(i => i.name.trim());
+    return () => {
+      mounted = false;
+    };
+  }, [isFull, listTags]);
 
-  const updateIngredient = (i: number, patch: Partial<Ingredient>) =>
-    setIngredients(prev => prev.map((row, idx) => (idx === i ? { ...row, ...patch } : row)));
-  const addRow = () => setIngredients(prev => [...prev, { id: '', name: '', quantity: 0, unit: '' }]);
-  const removeRow = (i: number) => setIngredients(prev => (prev.length > 1 ? prev.filter((_, idx) => idx !== i) : prev));
+  useEffect(() => {
+    onIngredientsChange?.(ingredients);
+  }, [ingredients, onIngredientsChange]);
 
-  const toggleTag = (id: string) => setSelectedTagIds(prev => (prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]));
+  const canSave = useMemo(() => {
+    if (isFull && !title.trim()) return false;
+    return ingredients.every((i) => i.name.trim());
+  }, [ingredients, isFull, title]);
+
+  const updateIngredient = (i: number, patch: Partial<Ingredient>) => {
+    if (ingredientsReadOnly) return;
+    setIngredients((prev) =>
+      prev.map((row, idx) => (idx === i ? { ...row, ...patch } : row)),
+    );
+  };
+
+  const addRow = () => {
+    if (ingredientsReadOnly) return;
+    setIngredients((prev) => [...prev, { id: '', name: '', quantity: 0, unit: '' }]);
+  };
+
+  const removeRow = (i: number) => {
+    if (ingredientsReadOnly) return;
+    setIngredients((prev) =>
+      prev.length > 1 ? prev.filter((_, idx) => idx !== i) : prev,
+    );
+  };
+
+  const toggleTag = (id: string) =>
+    setSelectedTagIds((prev) =>
+      prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id],
+    );
 
   const handleSubmit = async () => {
+    if (!onSubmit) return;
+
     if (!canSave) {
-      Alert.alert('Missing info', 'Title and ingredient names are required.');
+      Alert.alert(
+        'Missing info',
+        isFull
+          ? 'Title and ingredient names are required.'
+          : 'Ingredient names are required.',
+      );
       return;
     }
+
     setSaving(true);
     try {
-      console.log("selectedTagIds:", selectedTagIds);
       const payload: RecipeIn = {
         title: title.trim(),
         description: description.trim(),
         source: source.trim() || undefined,
-        ingredients: ingredients.map(i => ({
+        ingredients: ingredients.map((i) => ({
           id: i.id,
           name: i.name.trim(),
           quantity: Number.isFinite(i.quantity) ? i.quantity : 0,
@@ -82,7 +138,6 @@ export default function RecipeForm({ initial, submitLabel, onSubmit, selectIngre
         })),
         tag_ids: selectedTagIds,
       };
-      console.log("PUT/POST payload:", JSON.stringify(payload));
       await onSubmit(payload);
     } finally {
       setSaving(false);
@@ -90,118 +145,215 @@ export default function RecipeForm({ initial, submitLabel, onSubmit, selectIngre
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.select({ ios: 'padding', android: undefined })} style={{ flex: 1 }}>
-      <View style={{ padding: 16, gap: 16 }}>
-        <View style={{ gap: 8 }}>
-          <Text style={s.label}>Title</Text>
-          <TextInput style={s.input} value={title} onChangeText={setTitle} placeholder="e.g., Tomato Soup" />
-        </View>
+    <View style={s.container}>
+      {isFull && (
+        <>
+          <View style={{ gap: 8 }}>
+            <Text style={s.label}>Title</Text>
+            <TextInput
+              style={s.input}
+              value={title}
+              onChangeText={setTitle}
+              placeholder="e.g., Tomato Soup"
+            />
+          </View>
 
-        <View style={{ gap: 8 }}>
-          <Text style={s.label}>Description</Text>
-          <TextInput style={[s.input, { minHeight: 80 }]} value={description} onChangeText={setDescription} multiline />
-        </View>
+          <View style={{ gap: 8 }}>
+            <Text style={s.label}>Description</Text>
+            <TextInput
+              style={[s.input, { minHeight: 80 }]}
+              value={description}
+              onChangeText={setDescription}
+              multiline
+            />
+          </View>
 
-        <View style={{ gap: 8 }}>
-          <Text style={s.label}>Source (URL or book)</Text>
-          <TextInput style={[s.input, { minHeight: 80 }]} value={source} onChangeText={setSource} placeholder="https://… or 'Cookbook, p. 42'" />
-        </View>
+          <View style={{ gap: 8 }}>
+            <Text style={s.label}>Source (URL or book)</Text>
+            <TextInput
+              style={[s.input, { minHeight: 80 }]}
+              value={source}
+              onChangeText={setSource}
+              placeholder="https://… or 'Cookbook, p. 42'"
+            />
+          </View>
+        </>
+      )}
 
-        <View style={{ gap: 8 }}>
-          <Text style={s.label}>Ingredients</Text>
-          <FlatList
-            data={ingredients}
-            keyExtractor={(_, i) => String(i)}
-            renderItem={({ item, index }) => (
-              <View style={[s.row, { zIndex: ingredients.length - index },]}>
-                {selectIngredients && item.id ? (
-                  <Pressable
-                    onPress={() => selectIngredients.onToggle(item.id)}
-                    style={{
-                      width: 24, height: 24,
-                      borderWidth: 1.5,
-                      borderColor: selectIngredients.selectedIds.has(item.id) ? '#111827' : '#9ca3af',
-                      borderRadius: 6,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: selectIngredients.selectedIds.has(item.id) ? '#111827' : '#fff',
-                    }}
-                  >
-                    <Text style={{ color: '#fff', fontWeight: '900' }}>
-                      {selectIngredients.selectedIds.has(item.id) ? '✓' : ''}
-                    </Text>
-                  </Pressable>
-                ) : null}
-                <TextInput
-                  style={[s.input, s.flex2]}
-                  placeholder="name"
-                  value={item.name}
-                  onChangeText={t => updateIngredient(index, { name: t })}
-                />
-                <TextInput
-                  style={[s.input, s.flex1]}
-                  placeholder="qty"
-                  keyboardType="numeric"
-                  value={String(item.quantity ?? 0)}
-                  onChangeText={t => updateIngredient(index, { quantity: Number(t) || 0 })}
-                />
-                <UnitSelect
-                  value={item.unit}
-                  onChange={t => updateIngredient(index, { unit: t })}
-                  containerStyle={{ flex: 1 }}
-                />
-                <Pressable onPress={() => removeRow(index)} style={s.iconBtn}><Text style={s.icon}>✕</Text></Pressable>
-              </View>
-            )}
-            ListFooterComponent={
-              <Pressable onPress={addRow} style={[s.button, s.ghost]}>
-                <Text style={s.buttonText}>+ Add ingredient</Text>
+      <View style={{ gap: 8 }}>
+        <Text style={s.label}>Ingredients</Text>
+
+        {ingredients.map((item, index) => (
+          <View
+            key={item.id || `row-${index}`}
+            style={[s.row, { zIndex: ingredients.length - index }]}
+          >
+            {selectIngredients && item.id ? (
+              <Pressable
+                onPress={() => selectIngredients.onToggle(item.id!)}
+                style={[
+                  s.checkbox,
+                  selectIngredients.selectedIds.has(item.id) && s.checkboxOn,
+                ]}
+              >
+                <Text style={s.checkboxText}>
+                  {selectIngredients.selectedIds.has(item.id) ? '✓' : ''}
+                </Text>
               </Pressable>
-            }
-          />
-        </View>
+            ) : null}
 
-        <View style={{ gap:8 }}>
-          <Text style={s.label}>Tags</Text>
+            <TextInput
+              style={[s.input, s.flex2, ingredientsReadOnly && s.readOnly]}
+              placeholder="name"
+              value={item.name}
+              editable={!ingredientsReadOnly}
+              onChangeText={(t) => updateIngredient(index, { name: t })}
+            />
+
+            <TextInput
+              style={[s.input, s.flex1, ingredientsReadOnly && s.readOnly]}
+              placeholder="qty"
+              keyboardType="numeric"
+              value={String(item.quantity ?? 0)}
+              editable={!ingredientsReadOnly}
+              onChangeText={(t) =>
+                updateIngredient(index, { quantity: Number(t) || 0 })
+              }
+            />
+
+            <UnitSelect
+              value={item.unit}
+              onChange={(t) => updateIngredient(index, { unit: t })}
+              containerStyle={{ flex: 1 }}
+            />
+
+            <Pressable
+              onPress={() => removeRow(index)}
+              disabled={ingredientsReadOnly}
+              style={[s.iconBtn, ingredientsReadOnly && s.disabled]}
+            >
+              <Text style={s.icon}>✕</Text>
+            </Pressable>
+          </View>
+        ))}
+
+        <Pressable
+          onPress={addRow}
+          disabled={ingredientsReadOnly}
+          style={[s.button, s.ghost, ingredientsReadOnly && s.disabled]}
+        >
+          <Text style={s.buttonText}>+ Add ingredient</Text>
+        </Pressable>
+      </View>
+
+      {isFull && (
+        <>
+          <View style={{ gap: 8 }}>
+            <Text style={s.label}>Tags</Text>
+
             {!allTags ? (
               <ActivityIndicator />
             ) : allTags.length === 0 ? (
-              <Text style={{ color: '#6b7280' }}>No tags yet. Create some in the Tags screen.</Text>
+              <Text style={{ color: '#6b7280' }}>
+                No tags yet. Create some in the Tags screen.
+              </Text>
             ) : (
               <View style={s.tagsWrap}>
-                {allTags.map(tag => {
+                {allTags.map((tag) => {
                   const active = selectedTagIds.includes(tag.id);
                   return (
-                    <Pressable key={tag.id} onPress={() => toggleTag(tag.id)} style={[s.tag, active && s.tagActive]}>
-                      <Text style={[s.tagText, active && s.tagTextActive]}>{tag.name}</Text>
+                    <Pressable
+                      key={tag.id}
+                      onPress={() => toggleTag(tag.id)}
+                      style={[s.tag, active && s.tagActive]}
+                    >
+                      <Text style={[s.tagText, active && s.tagTextActive]}>
+                        {tag.name}
+                      </Text>
                     </Pressable>
                   );
                 })}
               </View>
             )}
-        </View>
+          </View>
 
-        <Pressable onPress={handleSubmit} disabled={!canSave || saving} style={[s.button, (!canSave || saving) && s.disabled]}>
-          <Text style={s.buttonText}>{saving ? 'Saving…' : submitLabel}</Text>
-        </Pressable>
-      </View>
-    </KeyboardAvoidingView>
+          <Pressable
+            onPress={handleSubmit}
+            disabled={!canSave || saving}
+            style={[s.button, (!canSave || saving) && s.disabled]}
+          >
+            <Text style={s.buttonText}>
+              {saving ? 'Saving…' : submitLabel}
+            </Text>
+          </Pressable>
+        </>
+      )}
+    </View>
   );
 }
 
 const s = StyleSheet.create({
+  container: { gap: 16 },
+
   label: { fontSize: 16, fontWeight: '600' },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8, position: 'relative'},
-  flex1: { flex: 1 }, flex2: { flex: 2 },
-  iconBtn: { paddingHorizontal: 10, paddingVertical: 8 }, icon: { fontSize: 18 },
-  button: { backgroundColor: '#111827', paddingVertical: 14, borderRadius: 10, alignItems: 'center' },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+    backgroundColor: '#fff',
+  },
+
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+    position: 'relative',
+  },
+
+  flex1: { flex: 1 },
+  flex2: { flex: 2 },
+
+  iconBtn: { paddingHorizontal: 10, paddingVertical: 8 },
+  icon: { fontSize: 18 },
+
+  button: {
+    backgroundColor: '#111827',
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   ghost: { backgroundColor: '#31382f' },
+
   disabled: { opacity: 0.5 },
+  readOnly: { opacity: 0.85 },
+
   tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  tag: { borderWidth: 1, borderColor: '#d1d5db', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999 },
+  tag: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+  },
   tagActive: { backgroundColor: '#111827', borderColor: '#111827' },
   tagText: { color: '#111827' },
   tagTextActive: { color: '#fff' },
+
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderWidth: 1.5,
+    borderColor: '#9ca3af',
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+  },
+  checkboxOn: { backgroundColor: '#111827', borderColor: '#111827' },
+  checkboxText: { color: '#fff', fontWeight: '900' },
 });

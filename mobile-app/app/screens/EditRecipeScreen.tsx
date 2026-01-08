@@ -1,181 +1,230 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import React, { useCallback, useState } from 'react';
+import { RouteProp, useRoute } from '@react-navigation/native';
 import {
   View,
   Text,
   Pressable,
   Alert,
   StyleSheet,
+  ScrollView,
+  KeyboardAvoidingView,
 } from 'react-native';
 
-import RecipeForm from '@app/components/RecipeForm';
-import ShoppingListPickerModal from '@app/components/ShoppingListPickerModal';
-import type { RecipeOut, RecipeIn, ShoppingListOut } from 'types/types';
 import type { RootStackParamList } from 'App';
+import type { RecipeOut, ShoppingListOut } from 'types/types';
 import { useRecipesApi } from 'api/recipes';
 import { useShoppingListApi } from 'api/shopping_lists';
 
-type EditRoute = RouteProp<RootStackParamList, 'EditRecipe'>;
-type AddMode = 'all' | 'selected';
+import RecipeForm from '@app/components/RecipeForm';
+import ShoppingListPickerModal from '@app/components/ShoppingListPickerModal';
+
+type RouteT = RouteProp<RootStackParamList, 'EditRecipe'>;
+
 
 export default function EditRecipeScreen() {
-  const { updateRecipe, addFromRecipe, addSelectedIngredientsToList } = useRecipesApi();
+  const route = useRoute<RouteT>();
+  const initialRecipe = route.params.recipe as RecipeOut;
+
+  const { patchRecipe, addFromRecipe, addSelectedIngredientsToList } =
+    useRecipesApi();
   const { getShoppingLists } = useShoppingListApi();
 
-  const navigation = useNavigation();
-  const route = useRoute<EditRoute>();
-  const recipe = route.params.recipe as RecipeOut;
-
-  const [pickVisible, setPickVisible] = useState(false);
-  const [lists, setLists] = useState<ShoppingListOut[]>([]);
-  const [loadingLists, setLoadingLists] = useState(false);
+  const [recipe, setRecipe] = useState(initialRecipe);
+  const [ingredientsDraft, setIngredientsDraft] = useState(
+    recipe.ingredients ?? []
+  );
 
   const [selectedIngIds, setSelectedIngIds] = useState<Set<string>>(new Set());
-  const [addMode, setAddMode] = useState<AddMode | null>(null);
-
   const selectedCount = selectedIngIds.size;
 
   const toggleIng = useCallback((id: string) => {
     setSelectedIngIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
   }, []);
 
-  const handleUpdateRecipe = useCallback(
-    async (payload: RecipeIn) => {
-      await updateRecipe(recipe.id, payload);
-      navigation.goBack();
-    },
-    [navigation, recipe.id, updateRecipe],
-  );
+  const [saving, setSaving] = useState(false);
+  const saveIngredients = async () => {
+    try {
+      setSaving(true);
+      const updated = await patchRecipe(recipe.id, {
+        ingredients: ingredientsDraft,
+      });
+      setRecipe(updated);
+      setIngredientsDraft(updated.ingredients ?? []);
+      Alert.alert('Saved', 'Ingredients updated.');
+    } catch (e: any) {
+      Alert.alert('Error', e?.message ?? 'Could not save ingredients.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
-  const ensureListsLoaded = useCallback(async () => {
-    if (lists.length > 0 || loadingLists) return;
+  const [pickVisible, setPickVisible] = useState(false);
+  const [lists, setLists] = useState<ShoppingListOut[]>([]);
+  const [loadingLists, setLoadingLists] = useState(false);
+  const [addMode, setAddMode] = useState<'all' | 'selected' | null>(null);
+
+  const ensureListsLoaded = async () => {
+    if (lists.length || loadingLists) return;
     setLoadingLists(true);
     try {
-      const data = await getShoppingLists();
-      setLists(data);
-    } catch (e: any) {
-      Alert.alert('Error', e?.message ?? 'Could not load shopping lists.');
-      setPickVisible(false);
+      setLists(await getShoppingLists());
     } finally {
       setLoadingLists(false);
     }
-  }, [getShoppingLists, lists.length, loadingLists]);
+  };
 
-  const openPickerFor = useCallback(
-    async (mode: AddMode) => {
-      if (mode === 'selected' && selectedIngIds.size === 0) {
-        Alert.alert('Nothing selected', 'Select ingredients first.');
-        return;
-      }
-      setAddMode(mode);
-      setPickVisible(true);
-      await ensureListsLoaded();
-    },
-    [ensureListsLoaded, selectedIngIds],
-  );
+  const openPickerFor = async (mode: 'all' | 'selected') => {
+    if (mode === 'selected' && selectedCount === 0) {
+      Alert.alert('Nothing selected');
+      return;
+    }
+    setAddMode(mode);
+    setPickVisible(true);
+    await ensureListsLoaded();
+  };
 
-  const pickerTitle = useMemo(() => {
-    if (addMode === 'selected') return `Add selected (${selectedCount}) to…`;
-    if (addMode === 'all') return 'Add ALL ingredients to…';
-    return 'Choose a list';
-  }, [addMode, selectedCount]);
-
-  const closePicker = useCallback(() => {
-    setPickVisible(false);
-    setAddMode(null);
-  }, []);
-
-  const onPickList = useCallback(
-    async (listId: string) => {
-      if (!addMode) return;
-
-      try {
-        setPickVisible(false);
-
-        if (addMode === 'all') {
-          const added = await addFromRecipe(listId, recipe.id);
-          Alert.alert('Added', `Added ${added.length} item(s).`);
-          return;
-        }
-
-        const ids = Array.from(selectedIngIds);
-        const added = await addSelectedIngredientsToList(recipe.id, listId, ids);
-        Alert.alert('Added', `Added ${added.length} item(s).`);
+  const onPickList = async (listId: string) => {
+    try {
+      setPickVisible(false);
+      if (addMode === 'all') {
+        await addFromRecipe(listId, recipe.id);
+      } else if (addMode === 'selected') {
+        await addSelectedIngredientsToList(
+          recipe.id,
+          listId,
+          Array.from(selectedIngIds),
+        );
         setSelectedIngIds(new Set());
-      } catch (e: any) {
-        Alert.alert('Error', e?.message ?? 'Could not add ingredients.');
-      } finally {
-        setAddMode(null);
       }
-    },
-    [
-      addFromRecipe,
-      addMode,
-      addSelectedIngredientsToList,
-      recipe.id,
-      selectedIngIds,
-    ],
-  );
+      Alert.alert('Added');
+    } catch (e: any) {
+      Alert.alert('Error', e?.message ?? 'Could not add ingredients.');
+    } finally {
+      setAddMode(null);
+    }
+  };
 
   return (
-    <View style={s.screen}>
-      <RecipeForm
-        initial={recipe}
-        submitLabel="Update Recipe"
-        onSubmit={handleUpdateRecipe}
-        selectIngredients={{
-          selectedIds: selectedIngIds,
-          onToggle: toggleIng,
-        }}
-      />
+    <KeyboardAvoidingView style={s.screen} behavior="padding">
+      <ScrollView contentContainerStyle={s.scrollContent}>
+        <View style={s.headerCard}>
+          <Text style={s.headerTitle}>{recipe.title}</Text>
+          {!!recipe.source && <Text style={s.headerSub}>{recipe.source}</Text>}
+          {!!recipe.description && (
+            <Text style={s.headerHint}>{recipe.description}</Text>
+          )}
+          {!!recipe.tags && recipe.tags.length > 0 && (
+            <Text style={s.headerHint}>
+              Tags: {recipe.tags.map((t) => t.name).join(', ')}
+            </Text>
+          )}
+        </View>
 
-      <Pressable onPress={() => openPickerFor('all')} style={s.primaryBtn}>
-        <Text style={s.primaryBtnText}>Add ALL ingredients</Text>
-      </Pressable>
+        <RecipeForm
+          mode="ingredients-only"
+          initial={recipe}
+          onIngredientsChange={setIngredientsDraft}
+          selectIngredients={{
+            selectedIds: selectedIngIds,
+            onToggle: toggleIng,
+          }}
+        />
 
-      <Pressable
-        onPress={() => openPickerFor('selected')}
-        style={[s.secondaryBtn, selectedCount === 0 && s.disabled]}
-      >
-        <Text style={s.secondaryBtnText}>
-          Add selected ({selectedCount})
-        </Text>
-      </Pressable>
+        <Pressable
+          onPress={saveIngredients}
+          disabled={saving}
+          style={[s.primaryBtn, saving && s.disabled]}
+        >
+          <Text style={s.primaryBtnText}>
+            {saving ? 'Saving…' : 'Save ingredients'}
+          </Text>
+        </Pressable>
+
+        <View style={{ height: 220 }} />
+      </ScrollView>
+
+      <View style={s.footer}>
+        <Pressable onPress={() => openPickerFor('all')} style={s.primaryBtn}>
+          <Text style={s.primaryBtnText}>Add ALL ingredients</Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => openPickerFor('selected')}
+          style={[s.secondaryBtn, selectedCount === 0 && s.disabled]}
+        >
+          <Text style={s.secondaryBtnText}>
+            Add selected ({selectedCount})
+          </Text>
+        </Pressable>
+      </View>
 
       <ShoppingListPickerModal
         visible={pickVisible}
         loading={loadingLists}
         lists={lists}
-        title={pickerTitle}
-        onClose={closePicker}
+        title="Add to shopping list"
+        onClose={() => setPickVisible(false)}
         onPick={onPickList}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
+
 const s = StyleSheet.create({
-  screen: { flex: 1, paddingHorizontal: 16, paddingVertical: 12 },
+  screen: { flex: 1, backgroundColor: '#fff' },
+  scroll: { flex: 1 },
+  scrollContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12 },
+
+  headerCard: {
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    marginBottom: 12,
+  },
+  headerTitle: { fontSize: 18, fontWeight: '800' },
+  headerSub: { marginTop: 4, color: '#374151' },
+  headerHint: { marginTop: 8, fontSize: 12, color: '#6b7280' },
+
+  footer: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    paddingTop: 8,
+    gap: 10,
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+  },
+
   primaryBtn: {
-    marginTop: 20,
     backgroundColor: '#111827',
     paddingVertical: 12,
     borderRadius: 10,
     alignItems: 'center',
   },
   primaryBtnText: { color: '#fff', fontWeight: '600' },
+
   secondaryBtn: {
-    marginTop: 10,
     backgroundColor: '#374151',
     paddingVertical: 12,
     borderRadius: 10,
     alignItems: 'center',
   },
   secondaryBtnText: { color: '#fff', fontWeight: '600' },
+
+  ghostBtn: {
+    backgroundColor: '#f3f4f6',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  ghostBtnText: { color: '#111827', fontWeight: '600' },
+
   disabled: { opacity: 0.5 },
 });

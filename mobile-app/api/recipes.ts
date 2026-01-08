@@ -14,6 +14,11 @@ export function useRecipesApi() {
       method: "PUT",
       body: JSON.stringify(recipe),
     }),
+    patchRecipe: (id: string, patch: Partial<RecipeIn>) =>
+      api<RecipeOut>(`/recipes/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(patch),
+      }),
     deleteRecipe: (id: string) => api<void>(`/recipes/${id}`, { method: "DELETE" }),
     addFromRecipe: (listId: string, recipeId: string) =>
       api<ShoppingItemOut[]>(`/recipes/${listId}/from-recipe/${recipeId}`, {

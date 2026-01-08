@@ -228,7 +228,7 @@ export default function ShoppingListsScreen() {
               <TextInput
                 value={shareTarget}
                 onChangeText={setShareTarget}
-                placeholder="User ID or email"
+                placeholder="Email"
                 style={styles.input}
               />
               <Pressable

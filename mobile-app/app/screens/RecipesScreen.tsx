@@ -1,11 +1,12 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, FlatList, RefreshControl, ActivityIndicator, StyleSheet, Alert, Pressable } from 'react-native';
+import { View, Text, FlatList, RefreshControl, ActivityIndicator, StyleSheet, Pressable } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from 'App';
 
 import type { RecipeOut } from 'types/types';
 import { useRecipesApi } from 'api/recipes';
+import RecipeActionsModal from '@app/components/RecipeActionsModal';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'Recipes'>;
 
@@ -14,7 +15,10 @@ export default function RecipesScreen() {
   const [recipes, setRecipes] = useState<RecipeOut[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const { fetchRecipes, deleteRecipe } = useRecipesApi();
+  const { fetchRecipes } = useRecipesApi();
+
+  const [actionsVisible, setActionsVisible] = useState(false);
+  const [activeRecipe, setActiveRecipe] = useState<RecipeOut | null>(null);
 
 const load = async () => {
   setLoading(true);
@@ -42,15 +46,14 @@ const load = async () => {
     }
   }, []);
 
-  const confirmDelete = (id: string) => {
-    Alert.alert('Delete recipe?', 'This cannot be undone.', [
-    	{ text: 'Cancel', style: 'cancel' },
-    	{ text: 'Delete', style: 'destructive', onPress: async () => {
-        	await deleteRecipe(id);
-        	load();
-        } 
-      },
-    ]);
+  const openActions = (recipe: RecipeOut) => {
+    setActiveRecipe(recipe);
+    setActionsVisible(true);
+  };
+
+  const closeActions = () => {
+    setActionsVisible(false);
+    setActiveRecipe(null);
   };
 
   if (loading) {
@@ -66,11 +69,13 @@ const load = async () => {
       <FlatList
         data={recipes}
         keyExtractor={(item) => item.id}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
         renderItem={({ item }) => (
           <Pressable
             onPress={() => navigation.navigate('EditRecipe', { recipe: item })}
-            onLongPress={() => confirmDelete(item.id)}
+            onLongPress={() => openActions(item)}
             style={styles.card}
           >
             <Text style={styles.title}>{item.title}</Text>
@@ -78,8 +83,25 @@ const load = async () => {
           </Pressable>
         )}
         ListEmptyComponent={<Text>No recipes yet. Tap “＋” to add one.</Text>}
-
       />
+
+      {activeRecipe && (
+        <RecipeActionsModal
+          visible={actionsVisible}
+          recipe={activeRecipe}
+          onClose={closeActions}
+          onPatched={(updated) => {
+            setRecipes((prev) =>
+              prev.map((r) => (r.id === updated.id ? updated : r)),
+            );
+            closeActions();
+          }}
+          onDeleted={() => {
+            setRecipes((prev) => prev.filter((r) => r.id !== activeRecipe.id));
+            closeActions();
+          }}
+        />
+      )}
     </View>
   );
 }

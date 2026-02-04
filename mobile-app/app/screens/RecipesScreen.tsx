@@ -1,5 +1,5 @@
-import React, { useCallback, useState } from 'react';
-import { View, Text, FlatList, RefreshControl, ActivityIndicator, StyleSheet, Pressable, Linking, TextInput } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { View, Text, FlatList, RefreshControl, ActivityIndicator, StyleSheet, Pressable, Linking, TextInput, ScrollView } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from 'App';
@@ -20,12 +20,31 @@ export default function RecipesScreen() {
   const [actionsVisible, setActionsVisible] = useState(false);
   const [activeRecipe, setActiveRecipe] = useState<RecipeOut | null>(null);
   const [search, setSearch] = useState('');
+  const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
 
-  const filteredRecipes = search.trim()
-    ? recipes.filter((r) =>
+  // Extract unique tags from all recipes
+  const allTags = useMemo(() => {
+    const tagMap = new Map<string, { id: string; name: string }>();
+    recipes.forEach((r) => {
+      r.tags?.forEach((t) => tagMap.set(t.id, t));
+    });
+    return Array.from(tagMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [recipes]);
+
+  const filteredRecipes = useMemo(() => {
+    let result = recipes;
+    if (search.trim()) {
+      result = result.filter((r) =>
         r.title.toLowerCase().includes(search.toLowerCase())
-      )
-    : recipes;
+      );
+    }
+    if (selectedTagId) {
+      result = result.filter((r) =>
+        r.tags?.some((t) => t.id === selectedTagId)
+      );
+    }
+    return result;
+  }, [recipes, search, selectedTagId]);
 
 const load = async () => {
   setLoading(true);
@@ -79,6 +98,29 @@ const load = async () => {
         placeholder="Search recipes..."
         style={styles.searchInput}
       />
+      {allTags.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.tagsRow}
+          contentContainerStyle={styles.tagsRowContent}
+        >
+          {allTags.map((tag) => {
+            const isSelected = selectedTagId === tag.id;
+            return (
+              <Pressable
+                key={tag.id}
+                onPress={() => setSelectedTagId(isSelected ? null : tag.id)}
+                style={[styles.tag, isSelected && styles.tagSelected]}
+              >
+                <Text style={[styles.tagText, isSelected && styles.tagTextSelected]}>
+                  {tag.name}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      )}
       <FlatList
         data={filteredRecipes}
         keyExtractor={(item) => item.id}
@@ -114,7 +156,7 @@ const load = async () => {
         }}
         ListEmptyComponent={
           <Text style={styles.emptyText}>
-            {search.trim() ? 'No recipes found.' : 'No recipes yet. Tap "＋" to add one.'}
+            {search.trim() || selectedTagId ? 'No recipes found.' : 'No recipes yet. Tap "＋" to add one.'}
           </Text>
         }
       />
@@ -165,6 +207,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     fontSize: 16,
   },
+  tagsRow: { marginBottom: 12, flexGrow: 0 },
+  tagsRowContent: { gap: 8, alignItems: 'center' },
+  tag: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+  },
+  tagSelected: { backgroundColor: '#111827', borderColor: '#111827' },
+  tagText: { color: '#111827', fontSize: 12 },
+  tagTextSelected: { color: '#fff' },
   card: { padding: 12, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, marginBottom: 10, backgroundColor: '#fff' },
   title: { fontWeight: '700', fontSize: 16, marginBottom: 2 },
   ingredientCount: { fontSize: 13, color: '#6b7280', marginBottom: 4 },

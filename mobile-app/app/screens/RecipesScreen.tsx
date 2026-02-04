@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, FlatList, RefreshControl, ActivityIndicator, StyleSheet, Pressable } from 'react-native';
+import { View, Text, FlatList, RefreshControl, ActivityIndicator, StyleSheet, Pressable, Linking } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from 'App';
@@ -72,16 +72,30 @@ const load = async () => {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
-        renderItem={({ item }) => (
-          <Pressable
-            onPress={() => navigation.navigate('EditRecipe', { recipe: item })}
-            onLongPress={() => openActions(item)}
-            style={styles.card}
-          >
-            <Text style={styles.title}>{item.title}</Text>
-            {!!item.source && <Text style={styles.source}>{item.source}</Text>}
-          </Pressable>
-        )}
+        renderItem={({ item }) => {
+          const isUrl = item.source?.match(/^https?:\/\//i);
+          return (
+            <Pressable
+              onPress={() => navigation.navigate('EditRecipe', { recipe: item })}
+              onLongPress={() => openActions(item)}
+              style={styles.card}
+            >
+              <Text style={styles.title}>{item.title}</Text>
+              {!!item.source && (
+                isUrl ? (
+                  <Text
+                    style={styles.link}
+                    onPress={() => Linking.openURL(item.source!)}
+                  >
+                    {item.source}
+                  </Text>
+                ) : (
+                  <Text style={styles.source}>{item.source}</Text>
+                )
+              )}
+            </Pressable>
+          );
+        }}
         ListEmptyComponent={<Text>No recipes yet. Tap “＋” to add one.</Text>}
       />
 
@@ -124,4 +138,5 @@ const styles = StyleSheet.create({
   card: { padding: 12, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, marginBottom: 10, backgroundColor: '#fff' },
   title: { fontWeight: '700', fontSize: 16, marginBottom: 4 },
   source: { color: '#374151' },
+  link: { color: '#2563eb', textDecorationLine: 'underline' },
 });

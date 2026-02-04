@@ -24,6 +24,8 @@ type Props = {
   onPatched: (updated: RecipeOut) => void;
 
   onDeleted?: () => void;
+
+  onShared?: () => void | Promise<void>;
 };
 
 export default function RecipeActionsModal({
@@ -32,8 +34,9 @@ export default function RecipeActionsModal({
   onClose,
   onPatched,
   onDeleted,
+  onShared,
 }: Props) {
-  const { patchRecipe, deleteRecipe } = useRecipesApi();
+  const { patchRecipe, deleteRecipe, shareRecipe, unshareRecipe } = useRecipesApi();
   const { listTags } = useTagsApi();
 
   const [title, setTitle] = useState(recipe.title ?? '');
@@ -52,12 +55,16 @@ export default function RecipeActionsModal({
 
   const [saving, setSaving] = useState(false);
 
+  const [shareEmail, setShareEmail] = useState('');
+  const [sharing, setSharing] = useState(false);
+
   useEffect(() => {
     if (!visible) return;
     setTitle(recipe.title ?? '');
     setDescription(recipe.description ?? '');
     setSource(recipe.source ?? '');
     setSelectedTagIds(initialTagIds);
+    setShareEmail('');
   }, [visible, recipe, initialTagIds]);
 
   useEffect(() => {
@@ -76,7 +83,8 @@ export default function RecipeActionsModal({
     return () => {
       mounted = false;
     };
-  }, [visible, listTags]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
 
   const toggleTag = (id: string) => {
     setSelectedTagIds((prev) =>
@@ -144,6 +152,39 @@ export default function RecipeActionsModal({
         },
       },
     ]);
+  };
+
+  const handleShare = async () => {
+    const email = shareEmail.trim();
+    if (!email) {
+      Alert.alert('Missing info', 'Please enter an email address.');
+      return;
+    }
+
+    setSharing(true);
+    try {
+      await shareRecipe(recipe.id, email);
+      setShareEmail('');
+      await onShared?.();
+      Alert.alert('Shared', `Recipe shared with ${email}`);
+    } catch (e: any) {
+      Alert.alert('Error', e?.message ?? 'Could not share recipe.');
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  const handleUnshare = async (userId: string, userEmail: string) => {
+    setSharing(true);
+    try {
+      await unshareRecipe(recipe.id, userId);
+      await onShared?.();
+      Alert.alert('Unshared', `Recipe unshared from ${userEmail}`);
+    } catch (e: any) {
+      Alert.alert('Error', e?.message ?? 'Could not unshare recipe.');
+    } finally {
+      setSharing(false);
+    }
   };
 
   return (
@@ -225,6 +266,46 @@ export default function RecipeActionsModal({
             <Pressable onPress={confirmDelete} style={s.deleteBtn}>
               <Text style={s.deleteText}>Delete recipe</Text>
             </Pressable>
+
+            <View style={s.shareSection}>
+              <Text style={s.label}>Share recipe</Text>
+              <TextInput
+                value={shareEmail}
+                onChangeText={setShareEmail}
+                style={s.input}
+                placeholder="Email"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                editable={!sharing}
+              />
+              <Pressable
+                onPress={handleShare}
+                disabled={sharing || !shareEmail.trim()}
+                style={[s.shareBtn, (sharing || !shareEmail.trim()) && s.disabled]}
+              >
+                <Text style={{ color: '#fff', fontWeight: '600' }}>
+                  {sharing ? 'Sharing...' : 'Share'}
+                </Text>
+              </Pressable>
+
+              {recipe.shared_with_users && recipe.shared_with_users.length > 0 && (
+                <View style={{ marginTop: 12 }}>
+                  <Text style={s.label}>Shared with:</Text>
+                  {recipe.shared_with_users.map((user) => (
+                    <View key={user.id} style={s.sharedRow}>
+                      <Text style={s.sharedText}>{user.email}</Text>
+                      <Pressable
+                        onPress={() => handleUnshare(user.id, user.email)}
+                        disabled={sharing}
+                        style={[s.unshareBtn, sharing && s.disabled]}
+                      >
+                        <Text style={{ color: '#b91c1c' }}>Unshare</Text>
+                      </Pressable>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
           </ScrollView>
 
           <View style={s.actions}>
@@ -305,4 +386,31 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   deleteText: { color: '#b91c1c', fontWeight: '700' },
+
+  shareSection: {
+    marginTop: 12,
+    gap: 8,
+  },
+  shareBtn: {
+    backgroundColor: '#111827',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  sharedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
+  sharedText: {
+    fontSize: 14,
+    color: '#111827',
+  },
+  unshareBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: '#fee2e2',
+  },
 });

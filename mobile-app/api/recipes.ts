@@ -20,6 +20,15 @@ export function useRecipesApi() {
         body: JSON.stringify(patch),
       }),
     deleteRecipe: (id: string) => api<void>(`/recipes/${id}`, { method: "DELETE" }),
+    shareRecipe: (recipeId: string, email: string) =>
+      api<void>(`/recipes/${recipeId}/share`, {
+        method: "POST",
+        body: JSON.stringify({ shared_with_email: email }),
+      }),
+    unshareRecipe: (recipeId: string, userId: string) =>
+      api<void>(`/recipes/${recipeId}/share/${userId}`, {
+        method: "DELETE",
+      }),
     addFromRecipe: (listId: string, recipeId: string) =>
       api<ShoppingItemOut[]>(`/recipes/${listId}/from-recipe/${recipeId}`, {
         method: 'POST',

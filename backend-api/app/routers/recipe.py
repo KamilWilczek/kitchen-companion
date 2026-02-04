@@ -23,7 +23,7 @@ from app.schemas.recipe import (
 from app.schemas.shopping_item import ShoppingItemIn, ShoppingItemOut
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 router = APIRouter()
 
@@ -42,6 +42,7 @@ def get_recipes(
             )
         )
         .distinct()
+        .options(selectinload(Recipe.shared_with_users))
     )
     return db.scalars(q).all()
 
@@ -69,7 +70,7 @@ def add_recipe(
 
     db.add(recipe)
     db.commit()
-    db.refresh(recipe)
+    db.refresh(recipe, ["shared_with_users"])
     return recipe
 
 
@@ -100,7 +101,7 @@ def update_recipe(
         recipe.tags = []
 
     db.commit()
-    db.refresh(recipe)
+    db.refresh(recipe, ["shared_with_users"])
     return recipe
 
 
@@ -136,7 +137,7 @@ def patch_recipe(
             recipe.tags = []
 
     db.commit()
-    db.refresh(recipe)
+    db.refresh(recipe, ["shared_with_users"])
     return recipe
 
 

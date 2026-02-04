@@ -233,9 +233,9 @@ export default function ShoppingListsScreen() {
               />
               <Pressable
                 onPress={handleShare}
-                style={[styles.footerBtn, styles.addBtn, { marginTop: 8 }]}
+                style={styles.shareBtn}
               >
-                <Text style={{ color: '#fff' }}>Share List</Text>
+                <Text style={{ color: '#fff', fontWeight: '600' }}>Share List</Text>
               </Pressable>
               {editingList?.shared_with_users && editingList.shared_with_users.length > 0 && (
                 <View style={{ marginTop: 12 }}>
@@ -323,6 +323,13 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     marginBottom: 4,
     marginTop: 4,
+  },
+  shareBtn: {
+    backgroundColor: '#111827',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 8,
   },
   sharedRow: {
     flexDirection: 'row',

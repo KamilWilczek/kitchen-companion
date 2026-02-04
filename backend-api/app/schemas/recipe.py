@@ -1,5 +1,6 @@
 from uuid import UUID
 
+from app.schemas.shopping_item import SharedUserOut
 from app.schemas.tag import TagOut
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -59,6 +60,7 @@ class RecipeOut(RecipeBase):
     id: UUID
     ingredients: list[IngredientOut]
     tags: list[TagOut]
+    shared_with_users: list[SharedUserOut] = []
 
     model_config = ConfigDict(from_attributes=True)
 

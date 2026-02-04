@@ -100,6 +100,19 @@ const load = async () => {
             setRecipes((prev) => prev.filter((r) => r.id !== activeRecipe.id));
             closeActions();
           }}
+          onShared={async () => {
+            // Refresh recipes to get updated shared_with_users with proper IDs
+            try {
+              const refreshed = await fetchRecipes();
+              setRecipes(refreshed);
+              const updatedRecipe = refreshed.find((r) => r.id === activeRecipe.id);
+              if (updatedRecipe) {
+                setActiveRecipe(updatedRecipe);
+              }
+            } catch (e) {
+              console.log('Refresh recipes error:', e);
+            }
+          }}
         />
       )}
     </View>

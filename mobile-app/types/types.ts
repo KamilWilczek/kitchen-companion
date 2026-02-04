@@ -33,6 +33,7 @@ export interface RecipeOut {
   ingredients: IngredientOut[];
   tag_ids: UUID[];
   tags: TagOut[];
+  shared_with_users: { id: UUID; email: string }[];
 }
 
 // ---------- Shopping Lists ----------

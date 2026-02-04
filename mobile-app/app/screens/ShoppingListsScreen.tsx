@@ -198,8 +198,8 @@ export default function ShoppingListsScreen() {
         transparent
         onRequestClose={closeEditModal}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
+        <Pressable style={styles.modalOverlay} onPress={closeEditModal}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
             <Text style={styles.modalTitle}>Rename list</Text>
 
             <TextInput
@@ -258,8 +258,8 @@ export default function ShoppingListsScreen() {
                 </View>
               )}
             </View>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
     </View>
   );

@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, FlatList, RefreshControl, ActivityIndicator, StyleSheet, Pressable, Linking } from 'react-native';
+import { View, Text, FlatList, RefreshControl, ActivityIndicator, StyleSheet, Pressable, Linking, TextInput } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from 'App';
@@ -19,6 +19,13 @@ export default function RecipesScreen() {
 
   const [actionsVisible, setActionsVisible] = useState(false);
   const [activeRecipe, setActiveRecipe] = useState<RecipeOut | null>(null);
+  const [search, setSearch] = useState('');
+
+  const filteredRecipes = search.trim()
+    ? recipes.filter((r) =>
+        r.title.toLowerCase().includes(search.toLowerCase())
+      )
+    : recipes;
 
 const load = async () => {
   setLoading(true);
@@ -66,8 +73,14 @@ const load = async () => {
 
   return (
     <View style={{ flex: 1, padding: 12 }}>
+      <TextInput
+        value={search}
+        onChangeText={setSearch}
+        placeholder="Search recipes..."
+        style={styles.searchInput}
+      />
       <FlatList
-        data={recipes}
+        data={filteredRecipes}
         keyExtractor={(item) => item.id}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -99,7 +112,11 @@ const load = async () => {
             </Pressable>
           );
         }}
-        ListEmptyComponent={<Text>No recipes yet. Tap “＋” to add one.</Text>}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>
+            {search.trim() ? 'No recipes found.' : 'No recipes yet. Tap "＋" to add one.'}
+          </Text>
+        }
       />
 
       {activeRecipe && (
@@ -138,9 +155,20 @@ const load = async () => {
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  searchInput: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 12,
+    backgroundColor: '#fff',
+    fontSize: 16,
+  },
   card: { padding: 12, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, marginBottom: 10, backgroundColor: '#fff' },
   title: { fontWeight: '700', fontSize: 16, marginBottom: 2 },
   ingredientCount: { fontSize: 13, color: '#6b7280', marginBottom: 4 },
   source: { color: '#374151' },
   link: { color: '#2563eb', textDecorationLine: 'underline' },
+  emptyText: { padding: 12, color: '#6b7280' },
 });

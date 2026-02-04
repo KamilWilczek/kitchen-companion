@@ -81,6 +81,9 @@ const load = async () => {
               style={styles.card}
             >
               <Text style={styles.title}>{item.title}</Text>
+              <Text style={styles.ingredientCount}>
+                {item.ingredients.length} {item.ingredients.length === 1 ? 'ingredient' : 'ingredients'}
+              </Text>
               {!!item.source && (
                 isUrl ? (
                   <Text
@@ -136,7 +139,8 @@ const load = async () => {
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   card: { padding: 12, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, marginBottom: 10, backgroundColor: '#fff' },
-  title: { fontWeight: '700', fontSize: 16, marginBottom: 4 },
+  title: { fontWeight: '700', fontSize: 16, marginBottom: 2 },
+  ingredientCount: { fontSize: 13, color: '#6b7280', marginBottom: 4 },
   source: { color: '#374151' },
   link: { color: '#2563eb', textDecorationLine: 'underline' },
 });

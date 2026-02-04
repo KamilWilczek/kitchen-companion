@@ -210,6 +210,7 @@ def get_shopping_list_items(
         select(ShoppingItem)
         .where(ShoppingItem.list_id == list_id)
         .options(selectinload(ShoppingItem.recipe))
+        .order_by(ShoppingItem.name)
     ).all()
 
     return [

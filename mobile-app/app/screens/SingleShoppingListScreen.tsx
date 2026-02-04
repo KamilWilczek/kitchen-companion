@@ -10,6 +10,7 @@ import {
   Modal,
 } from 'react-native';
 import { useState, useCallback } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRoute } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -23,6 +24,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ShoppingList'>;
 export default function SingleShoppingListScreen() {
   const route = useRoute<Props['route']>();
   const { listId } = route.params;
+  const insets = useSafeAreaInsets();
 
   const [items, setItems] = useState<ShoppingItemOut[]>([]);
   const [loading, setLoading] = useState(true);
@@ -228,7 +230,7 @@ export default function SingleShoppingListScreen() {
         }
       />
 
-      <View style={s.footer}>
+      <View style={[s.footer, { marginBottom: Math.max(8, insets.bottom) }]}>
         <Pressable onPress={clearChecked} style={[s.footerBtn, s.ghost]}>
           <Text>Clear checked</Text>
         </Pressable>

@@ -9,6 +9,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { RootStackParamList } from 'App';
 import type { RecipeOut, ShoppingListOut } from 'types/types';
@@ -24,6 +25,7 @@ type RouteT = RouteProp<RootStackParamList, 'EditRecipe'>;
 export default function EditRecipeScreen() {
   const route = useRoute<RouteT>();
   const initialRecipe = route.params.recipe as RecipeOut;
+  const insets = useSafeAreaInsets();
 
   const { patchRecipe, addFromRecipe, addSelectedIngredientsToList } =
     useRecipesApi();
@@ -147,7 +149,7 @@ export default function EditRecipeScreen() {
         <View style={{ height: 220 }} />
       </ScrollView>
 
-      <View style={s.footer}>
+      <View style={[s.footer, { paddingBottom: Math.max(12, insets.bottom) }]}>
         <Pressable onPress={() => openPickerFor('all')} style={s.primaryBtn}>
           <Text style={s.primaryBtnText}>Add ALL ingredients</Text>
         </Pressable>

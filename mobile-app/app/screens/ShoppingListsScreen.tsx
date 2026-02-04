@@ -122,14 +122,23 @@ export default function ShoppingListsScreen() {
 
     await shareShoppingList(editingList.id, email);
     setShareTarget('');
-    closeEditModal();
-    load();
+    const refreshedLists = await getShoppingLists();
+    setLists(refreshedLists);
+    const updatedList = refreshedLists.find((l) => l.id === editingList.id);
+    if (updatedList) {
+      setEditingList(updatedList);
+    }
   };
 
   const handleUnshare = async (userId: string) => {
     if (!editingList) return;
     await unshareShoppingList(editingList.id, userId);
-    load();
+    const refreshedLists = await getShoppingLists();
+    setLists(refreshedLists);
+    const updatedList = refreshedLists.find((l) => l.id === editingList.id);
+    if (updatedList) {
+      setEditingList(updatedList);
+    }
   };
 
   if (loading) {

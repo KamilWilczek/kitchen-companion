@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -11,20 +11,18 @@ import {
   TextInput,
   Modal,
 } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from 'App';
 import type { ShoppingListOut } from 'types/types';
 import { useShoppingListApi } from 'api/shopping_lists';
+import { useLoadableData } from 'hooks/useLoadableData';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'ShoppingLists'>;
 
 export default function ShoppingListsScreen() {
   const navigation = useNavigation<NavProp>();
-  const [lists, setLists] = useState<ShoppingListOut[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
   const {
     getShoppingLists,
@@ -35,6 +33,18 @@ export default function ShoppingListsScreen() {
     unshareShoppingList,
   } = useShoppingListApi();
 
+  const {
+    data: lists,
+    loading,
+    refreshing,
+    onRefresh,
+    reload,
+    setData: setLists,
+  } = useLoadableData<ShoppingListOut[]>({
+    fetchFn: getShoppingLists,
+    initialData: [],
+  });
+
   const [newName, setNewName] = useState('');
 
   const [editVisible, setEditVisible] = useState(false);
@@ -42,38 +52,12 @@ export default function ShoppingListsScreen() {
   const [editName, setEditName] = useState('');
   const [shareTarget, setShareTarget] = useState('');
 
-  const load = async () => {
-    setLoading(true);
-    try {
-      setLists(await getShoppingLists());
-    } catch (e: any) {
-      console.log('Fetch shopping lists error:', e?.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, []),
-  );
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      setLists(await getShoppingLists());
-    } finally {
-      setRefreshing(false);
-    }
-  }, []);
-
   const addList = async () => {
     const name = newName.trim();
     if (!name) return;
     await createShoppingList({ name });
     setNewName('');
-    load();
+    reload();
   };
 
   const confirmDelete = (id: string) => {
@@ -88,7 +72,7 @@ export default function ShoppingListsScreen() {
           style: 'destructive',
           onPress: async () => {
             await deleteShoppingList(id);
-            load();
+            reload();
           },
         },
       ],
@@ -112,7 +96,7 @@ export default function ShoppingListsScreen() {
     if (!name) return;
     await updateShoppingList(editingList.id, { name });
     closeEditModal();
-    load();
+    reload();
   };
 
   const handleShare = async () => {

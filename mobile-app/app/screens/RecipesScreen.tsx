@@ -1,21 +1,30 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, FlatList, RefreshControl, ActivityIndicator, StyleSheet, Pressable, Linking, TextInput, ScrollView } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from 'App';
 
 import type { RecipeOut } from 'types/types';
 import { useRecipesApi } from 'api/recipes';
 import RecipeActionsModal from '@app/components/RecipeActionsModal';
+import { useLoadableData } from 'hooks/useLoadableData';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'Recipes'>;
 
 export default function RecipesScreen() {
   const navigation = useNavigation<NavProp>();
-  const [recipes, setRecipes] = useState<RecipeOut[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const { fetchRecipes } = useRecipesApi();
+
+  const {
+    data: recipes,
+    loading,
+    refreshing,
+    onRefresh,
+    setData: setRecipes,
+  } = useLoadableData<RecipeOut[]>({
+    fetchFn: fetchRecipes,
+    initialData: [],
+  });
 
   const [actionsVisible, setActionsVisible] = useState(false);
   const [activeRecipe, setActiveRecipe] = useState<RecipeOut | null>(null);
@@ -46,33 +55,7 @@ export default function RecipesScreen() {
     return result;
   }, [recipes, search, selectedTagId]);
 
-const load = async () => {
-  setLoading(true);
-  try {
-    setRecipes(await fetchRecipes());
-  } catch (e: any) {
-    console.log('Fetch recipes error:', e?.message);
-  } finally {
-    setLoading(false);
-  }
-};
-
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [])
-  );
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      setRecipes(await fetchRecipes());
-    } finally {
-      setRefreshing(false);
-    }
-  }, []);
-
-  const openActions = (recipe: RecipeOut) => {
+const openActions = (recipe: RecipeOut) => {
     setActiveRecipe(recipe);
     setActionsVisible(true);
   };

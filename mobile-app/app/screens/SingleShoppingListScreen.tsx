@@ -9,15 +9,16 @@ import {
   RefreshControl,
   Modal,
 } from 'react-native';
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect, useRoute } from '@react-navigation/native';
+import { useRoute } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { ShoppingItemOut } from 'types/types';
 import type { RootStackParamList } from 'App';
 import { useShoppingListApi } from 'api/shopping_lists';
 import UnitSelect from '@app/components/UnitSelect';
+import { useLoadableData } from 'hooks/useLoadableData';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ShoppingList'>;
 
@@ -25,10 +26,6 @@ export default function SingleShoppingListScreen() {
   const route = useRoute<Props['route']>();
   const { listId } = route.params;
   const insets = useSafeAreaInsets();
-
-  const [items, setItems] = useState<ShoppingItemOut[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
   const {
     getShoppingListItems,
@@ -39,6 +36,18 @@ export default function SingleShoppingListScreen() {
     removeRecipeFromList,
   } = useShoppingListApi();
 
+  const {
+    data: items,
+    loading,
+    refreshing,
+    onRefresh,
+    setData: setItems,
+  } = useLoadableData<ShoppingItemOut[]>({
+    fetchFn: () => getShoppingListItems(listId),
+    deps: [listId],
+    initialData: [],
+  });
+
   const [name, setName] = useState('');
   const [qty, setQty] = useState('1');
   const [unit, setUnit] = useState('');
@@ -48,31 +57,6 @@ export default function SingleShoppingListScreen() {
   const [editName, setEditName] = useState('');
   const [editQty, setEditQty] = useState('1');
   const [editUnit, setEditUnit] = useState('');
-
-  const load = async () => {
-    setLoading(true);
-    try {
-      const data = await getShoppingListItems(listId);
-      setItems(data);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [listId]),
-  );
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      setItems(await getShoppingListItems(listId));
-    } finally {
-      setRefreshing(false);
-    }
-  }, [listId]);
 
   const addItem = async () => {
     const n = name.trim();

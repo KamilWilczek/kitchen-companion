@@ -1,34 +1,33 @@
-import React, { useCallback, useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable, FlatList, Alert, StyleSheet, ActivityIndicator } from 'react-native';
 import type { TagOut } from 'types/types';
-import { useFocusEffect } from '@react-navigation/native';
 import { useTagsApi } from 'api/tags';
+import { useLoadableData } from 'hooks/useLoadableData';
 
 
 export default function TagsScreen() {
-  const [tags, setTags] = useState<TagOut[] | null>(null);
+  const { listTags, createTag, renameTag, deleteTag } = useTagsApi();
+
+  const {
+    data: tags,
+    loading,
+    reload,
+    setData: setTags,
+  } = useLoadableData<TagOut[]>({
+    fetchFn: listTags,
+    initialData: [],
+  });
+
   const [newName, setNewName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
-  const { listTags, createTag, renameTag, deleteTag } = useTagsApi();
-
-  const load = async () => {
-    setTags(null);
-    try {
-      setTags(await listTags());
-    } catch {
-      setTags([]);
-    }
-  };
-
-  useFocusEffect(useCallback(() => { load(); }, []));
 
   const onAdd = async () => {
     const name = newName.trim();
     if (!name) return;
     await createTag(name);
     setNewName('');
-    await load();
+    await reload();
   };
 
   const startEdit = (t: TagOut) => {
@@ -42,13 +41,13 @@ export default function TagsScreen() {
     await renameTag(editingId, name);
     setEditingId(null);
     setEditingName('');
-    await load();
+    await reload();
   };
 
   const onDelete = async (id: string) => {
     try {
       await deleteTag(id);
-      await load();
+      await reload();
     } catch (e: any) {
       Alert.alert('Cannot delete', e?.message ?? 'This tag is in use by one or more recipes.');
     }
@@ -66,7 +65,7 @@ export default function TagsScreen() {
         <Pressable onPress={onAdd} style={s.button}><Text style={s.buttonText}>Add</Text></Pressable>
       </View>
 
-      {!tags ? (
+      {loading ? (
         <View style={s.center}><ActivityIndicator /></View>
       ) : (
         <FlatList

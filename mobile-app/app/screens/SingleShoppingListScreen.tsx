@@ -158,6 +158,11 @@ export default function SingleShoppingListScreen() {
         <Text style={[s.meta, item.checked && s.strike]}>
           {item.quantity} {item.unit}
         </Text>
+        {item.recipe_title && (
+          <Text style={[s.source, item.checked && s.strike]}>
+            przepis: {item.recipe_title}
+          </Text>
+        )}
       </View>
 
       <View style={s.qBtns}>
@@ -333,6 +338,7 @@ const s = StyleSheet.create({
   checkboxTextOn: { color: '#fff' },
   name: { fontSize: 16, fontWeight: '600' },
   meta: { color: '#374151' },
+  source: { fontSize: 12, color: '#6b7280', fontStyle: 'italic' },
   strike: { textDecorationLine: 'line-through', color: '#9ca3af' },
   qBtns: { flexDirection: 'row', gap: 8 },
   smallBtn: {

@@ -62,4 +62,5 @@ export interface ShoppingItemIn {
 export interface ShoppingItemOut extends ShoppingItemIn {
   id: UUID;
   checked: boolean;
+  recipe_title?: string | null;
 }

@@ -20,7 +20,7 @@ from app.schemas.shopping_item import (
 )
 from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy import or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 router = APIRouter()
 
@@ -207,10 +207,23 @@ def get_shopping_list_items(
         raise HTTPException(status_code=404, detail="List not found")
 
     items = db.scalars(
-        select(ShoppingItem).where(ShoppingItem.list_id == list_id)
+        select(ShoppingItem)
+        .where(ShoppingItem.list_id == list_id)
+        .options(selectinload(ShoppingItem.recipe))
     ).all()
 
-    return items
+    return [
+        ShoppingItemOut(
+            id=item.id,
+            name=item.name,
+            quantity=item.quantity,
+            unit=item.unit,
+            recipe_id=item.recipe_id,
+            checked=item.checked,
+            recipe_title=item.recipe.title if item.recipe else None,
+        )
+        for item in items
+    ]
 
 
 @router.patch("/{list_id}/items/{item_id}", response_model=ShoppingItemOut)

@@ -36,6 +36,7 @@ export default function SingleShoppingListScreen() {
     patchShoppingItem,
     deleteShoppingItem,
     clearShoppingList,
+    removeRecipeFromList,
   } = useShoppingListApi();
 
   const [name, setName] = useState('');
@@ -142,6 +143,27 @@ export default function SingleShoppingListScreen() {
 
     setItems(await getShoppingListItems(listId));
     closeEditModal();
+  };
+
+  const confirmRemoveRecipe = () => {
+    if (!editingItem?.recipe_id || !editingItem?.recipe_title) return;
+
+    Alert.alert(
+      'Remove recipe items?',
+      `Remove all items from "${editingItem.recipe_title}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            await removeRecipeFromList(listId, editingItem.recipe_id!);
+            setItems(await getShoppingListItems(listId));
+            closeEditModal();
+          },
+        },
+      ],
+    );
   };
 
   const Row = ({ item }: { item: ShoppingItemOut }) => (
@@ -278,6 +300,14 @@ export default function SingleShoppingListScreen() {
               containerStyle={{ marginTop: 4 }}
             />
 
+            {editingItem?.recipe_title && (
+              <Pressable onPress={confirmRemoveRecipe} style={s.removeRecipeBtn}>
+                <Text style={s.removeRecipeBtnText}>
+                  Remove all from "{editingItem.recipe_title}"
+                </Text>
+              </Pressable>
+            )}
+
             <View style={s.modalActions}>
               <Pressable
                 onPress={closeEditModal}
@@ -374,4 +404,12 @@ const s = StyleSheet.create({
   modalCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, gap: 10 },
   modalTitle: { fontSize: 18, fontWeight: '600', marginBottom: 4 },
   modalActions: { flexDirection: 'row', gap: 10, marginTop: 8 },
+  removeRecipeBtn: {
+    backgroundColor: '#fee2e2',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  removeRecipeBtnText: { color: '#b91c1c', fontWeight: '600' },
 });

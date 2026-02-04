@@ -139,7 +139,7 @@ export default function EditRecipeScreen() {
         <Pressable
           onPress={saveIngredients}
           disabled={saving}
-          style={[s.primaryBtn, saving && s.disabled]}
+          style={[s.primaryBtn, saving && s.disabled, { marginTop: 16 }]}
         >
           <Text style={s.primaryBtnText}>
             {saving ? 'Saving…' : 'Save ingredients'}

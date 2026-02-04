@@ -23,7 +23,7 @@ export function useApi__old() {
 
 
 export function useApi() {
-  const { token } = useAuth();
+  const { token, logout } = useAuth();
 
   return async function api<T>(path: string, init?: RequestInit): Promise<T> {
     const res = await fetch(`${API_URL}${path}`, {
@@ -34,6 +34,11 @@ export function useApi() {
         ...(init?.headers || {}),
       },
     });
+
+    if (res.status === 401) {
+      await logout();
+      throw new Error('Session expired. Please log in again.');
+    }
 
     if (!res.ok) {
       const text = await res.text().catch(() => '');

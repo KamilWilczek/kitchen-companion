@@ -12,6 +12,7 @@ import ShoppingListsScreen from '@app/screens/ShoppingListsScreen/ShoppingListsS
 import SingleShoppingListScreen from '@app/screens/SingleShoppingListScreen/SingleShoppingListScreen';
 import AuthScreen from '@app/screens/AuthScreen/AuthScreen';
 import MealPlannerScreen from '@app/screens/MealPlannerScreen/MealPlannerScreen';
+import AccountScreen from '@app/screens/AccountScreen/AccountScreen';
 import { useAuth, AuthProvider } from 'auth/AuthProvider';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { colors } from '@app/styles/colors';
@@ -19,6 +20,7 @@ import { colors } from '@app/styles/colors';
 export type RootStackParamList = {
   Auth: undefined;
   Home: undefined;
+  Account: undefined;
   Recipes: undefined;
   NewRecipe: undefined;
   EditRecipe: { recipe: any };
@@ -31,7 +33,7 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 function HomeScreen({ navigation }: NativeStackScreenProps<RootStackParamList, 'Home'>) {
-  const { logout, plan } = useAuth();
+  const { plan } = useAuth();
 
   return (
     <View style={{ flex: 1, padding: 24, justifyContent: 'center', gap: 16 }}>
@@ -109,10 +111,18 @@ function HomeScreen({ navigation }: NativeStackScreenProps<RootStackParamList, '
       </Pressable>
 
       <Pressable
-        onPress={logout}
-        style={{ marginTop: 16, alignSelf: 'flex-start', padding: 8 }}
+        onPress={() => navigation.navigate('Account')}
+        style={{
+          padding: 16,
+          borderRadius: 12,
+          borderWidth: 1,
+          borderColor: colors.borderLight,
+        }}
       >
-        <Text style={{ fontSize: 14, color: colors.dangerText }}>Logout</Text>
+        <Text style={{ fontSize: 18, fontWeight: '500' }}>Account</Text>
+        <Text style={{ color: colors.muted, marginTop: 4 }}>
+          Manage your plan, password, and settings.
+        </Text>
       </Pressable>
     </View>
   );
@@ -193,6 +203,11 @@ function RootNavigator() {
             name="MealPlanner"
             component={MealPlannerScreen}
             options={{ title: 'Meal Planner' }}
+          />
+          <Stack.Screen
+            name="Account"
+            component={AccountScreen}
+            options={{ title: 'Account' }}
           />
         </>
       )}

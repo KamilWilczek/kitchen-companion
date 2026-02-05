@@ -17,6 +17,7 @@ type AuthContextType = {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateToken: (newToken: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -158,10 +159,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
   }
 
+  async function updateToken(newToken: string) {
+    await storage.setItem(TOKEN_KEY, newToken);
+    setToken(newToken);
+    scheduleAutoLogout(newToken);
+  }
+
   const plan = token ? getTokenPlan(token) : 'free';
 
   return (
-    <AuthContext.Provider value={{ token, plan, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ token, plan, loading, login, register, logout, updateToken }}>
       {children}
     </AuthContext.Provider>
   );

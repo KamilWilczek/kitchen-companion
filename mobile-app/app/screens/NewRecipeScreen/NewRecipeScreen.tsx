@@ -1,8 +1,9 @@
 import React from 'react';
 import { useNavigation } from '@react-navigation/native';
-import { ScrollView, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
-import RecipeForm from '@app/components/RecipeForm';
+import { ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import RecipeForm from '@app/components/RecipeForm/RecipeForm';
 import { useRecipesApi } from 'api/recipes';
+import { s } from './NewRecipeScreen.styles';
 
 export default function NewRecipeScreen() {
   const { createRecipe } = useRecipesApi();
@@ -23,8 +24,3 @@ export default function NewRecipeScreen() {
     </KeyboardAvoidingView>
   );
 }
-
-const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#fff' },
-  content: { paddingHorizontal: 16, paddingVertical: 12 },
-});

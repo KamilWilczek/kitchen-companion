@@ -5,7 +5,6 @@ import {
   FlatList,
   RefreshControl,
   ActivityIndicator,
-  StyleSheet,
   Alert,
   Pressable,
   TextInput,
@@ -18,6 +17,8 @@ import type { RootStackParamList } from 'App';
 import type { ShoppingListOut } from 'types/types';
 import { useShoppingListApi } from 'api/shopping_lists';
 import { useLoadableData } from 'hooks/useLoadableData';
+import { s } from './ShoppingListsScreen.styles';
+import { colors } from '@app/styles/colors';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'ShoppingLists'>;
 
@@ -127,7 +128,7 @@ export default function ShoppingListsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center}>
+      <View style={s.center}>
         <ActivityIndicator />
       </View>
     );
@@ -135,15 +136,15 @@ export default function ShoppingListsScreen() {
 
   return (
     <View style={{ flex: 1, padding: 12 }}>
-      <View style={styles.addRow}>
+      <View style={s.addRow}>
         <TextInput
           value={newName}
           onChangeText={setNewName}
           placeholder="New list name"
-          style={[styles.input, { flex: 1 }]}
+          style={[s.input, { flex: 1 }]}
         />
-        <Pressable onPress={addList} style={styles.addBtn}>
-          <Text style={{ color: '#fff' }}>Add</Text>
+        <Pressable onPress={addList} style={s.addBtn}>
+          <Text style={{ color: colors.white }}>Add</Text>
         </Pressable>
       </View>
 
@@ -162,24 +163,24 @@ export default function ShoppingListsScreen() {
               })
             }
             onLongPress={() => openEditModal(item)}
-            style={styles.card}
+            style={s.card}
           >
             <View style={{ flex: 1 }}>
-              <Text style={styles.title}>{item.name}</Text>
-              <Text style={styles.counter}>
+              <Text style={s.title}>{item.name}</Text>
+              <Text style={s.counter}>
                 {item.total_items >0 ? `${item.checked_items}/${item.total_items}` : '0/0'}
               </Text>
             </View>
             <Pressable
               onPress={() => confirmDelete(item.id)}
-              style={styles.deleteBtn}
+              style={s.deleteBtn}
             >
-              <Text style={{ color: '#fff' }}>Del</Text>
+              <Text style={{ color: colors.white }}>Del</Text>
             </Pressable>
           </Pressable>
         )}
         ListEmptyComponent={
-          <Text style={{ padding: 12, color: '#6b7280' }}>
+          <Text style={{ padding: 12, color: colors.muted }}>
             No shopping lists yet. Add one above.
           </Text>
         }
@@ -191,60 +192,60 @@ export default function ShoppingListsScreen() {
         transparent
         onRequestClose={closeEditModal}
       >
-        <Pressable style={styles.modalOverlay} onPress={closeEditModal}>
-          <Pressable style={styles.modalCard} onPress={() => {}}>
-            <Text style={styles.modalTitle}>Rename list</Text>
+        <Pressable style={s.modalOverlay} onPress={closeEditModal}>
+          <Pressable style={s.modalCard} onPress={() => {}}>
+            <Text style={s.modalTitle}>Rename list</Text>
 
             <TextInput
               value={editName}
               onChangeText={setEditName}
               placeholder="List name"
-              style={styles.input}
+              style={s.input}
             />
 
-            <View style={styles.modalActions}>
+            <View style={s.modalActions}>
               <Pressable
                 onPress={closeEditModal}
-                style={[styles.footerBtn, styles.ghost]}
+                style={[s.footerBtn, s.ghost]}
               >
                 <Text>Cancel</Text>
               </Pressable>
               <Pressable
                 onPress={saveEdit}
-                style={[styles.footerBtn, styles.addBtn]}
+                style={[s.footerBtn, s.addBtn]}
               >
-                <Text style={{ color: '#fff' }}>Save</Text>
+                <Text style={{ color: colors.white }}>Save</Text>
               </Pressable>
             </View>
             <View style={{ marginTop: 12}}>
-              <Text style={styles.sectionLabel}>Share</Text>
+              <Text style={s.sectionLabel}>Share</Text>
               <TextInput
                 value={shareTarget}
                 onChangeText={setShareTarget}
                 placeholder="Email"
-                style={styles.input}
+                style={s.input}
               />
               <Pressable
                 onPress={handleShare}
-                style={styles.shareBtn}
+                style={s.shareBtn}
               >
-                <Text style={{ color: '#fff', fontWeight: '600' }}>Share List</Text>
+                <Text style={{ color: colors.white, fontWeight: '600' }}>Share List</Text>
               </Pressable>
               {editingList?.shared_with_users && editingList.shared_with_users.length > 0 && (
                 <View style={{ marginTop: 12 }}>
-                  <Text style={styles.sectionLabel}>Shared with:</Text>
+                  <Text style={s.sectionLabel}>Shared with:</Text>
                   {editingList.shared_with_users.map((user) => (
                     <View
                       key={user.id}
-                      style={styles.sharedRow}>
-                        <Text style={styles.sharedText}>
+                      style={s.sharedRow}>
+                        <Text style={s.sharedText}>
                           {user.email}
                         </Text>
                         <Pressable
                           onPress={() => handleUnshare(user.id)}
-                          style={styles.unshareBtn}
+                          style={s.unshareBtn}
                         >
-                          <Text style={{ color: '#b91c1c' }}>Unshare</Text>
+                          <Text style={{ color: colors.dangerDark }}>Unshare</Text>
                         </Pressable>
                     </View>
                   ))}
@@ -257,87 +258,3 @@ export default function ShoppingListsScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  addRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: '#fff',
-  },
-  addBtn: {
-    backgroundColor: '#111827',
-    paddingHorizontal: 14,
-    justifyContent: 'center',
-    borderRadius: 8,
-  },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 10,
-    marginBottom: 10,
-    backgroundColor: '#fff',
-    gap: 8,
-  },
-  title: { fontWeight: '700', fontSize: 16 },
-  counter: {
-    marginTop: 2,
-    fontSize: 13,
-    color: '#6b7280',
-  },
-  deleteBtn: {
-    backgroundColor: '#dc2626',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  modalCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, gap: 10 },
-  modalTitle: { fontSize: 18, fontWeight: '600', marginBottom: 4 },
-  modalActions: { flexDirection: 'row', gap: 10, marginTop: 8 },
-  footerBtn: { flex: 1, alignItems: 'center', padding: 12, borderRadius: 10 },
-  ghost: { backgroundColor: '#f3f4f6' },
-    sectionLabel: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#6b7280',
-    marginBottom: 4,
-    marginTop: 4,
-  },
-  shareBtn: {
-    backgroundColor: '#111827',
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  sharedRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 6,
-  },
-  sharedText: {
-    fontSize: 14,
-    color: '#111827',
-  },
-  unshareBtn: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    backgroundColor: '#fee2e2',
-  },
-});

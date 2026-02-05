@@ -5,9 +5,9 @@ import {
   TextInput,
   Pressable,
   ActivityIndicator,
-  StyleSheet,
 } from 'react-native';
 import { useAuth } from 'auth/AuthProvider';
+import { s } from './AuthScreen.styles';
 
 export default function AuthScreen() {
   const { login, register } = useAuth();
@@ -41,10 +41,10 @@ export default function AuthScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Kitchen Companion</Text>
+    <View style={s.container}>
+      <Text style={s.title}>Kitchen Companion</Text>
       <TextInput
-        style={styles.input}
+        style={s.input}
         placeholder="Email"
         keyboardType="email-address"
         autoCapitalize="none"
@@ -52,69 +52,27 @@ export default function AuthScreen() {
         onChangeText={setEmail}
       />
       <TextInput
-        style={styles.input}
+        style={s.input}
         placeholder="Password"
         secureTextEntry
         autoCapitalize="none"
         value={password}
         onChangeText={setPassword}
       />
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? <Text style={s.error}>{error}</Text> : null}
 
       {submitting ? (
         <ActivityIndicator style={{ marginTop: 16 }} />
       ) : (
         <>
-          <Pressable style={styles.button} onPress={handleLogin}>
-            <Text style={styles.buttonText}>Log in</Text>
+          <Pressable style={s.button} onPress={handleLogin}>
+            <Text style={s.buttonText}>Log in</Text>
           </Pressable>
-          <Pressable style={[styles.button, styles.secondary]} onPress={handleRegister}>
-            <Text style={styles.buttonText}>Register</Text>
+          <Pressable style={[s.button, s.secondary]} onPress={handleRegister}>
+            <Text style={s.buttonText}>Register</Text>
           </Pressable>
         </>
       )}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 24,
-    justifyContent: 'center',
-    backgroundColor: '#F9FAFB',
-  },
-  title: {
-    fontSize: 24,
-    marginBottom: 24,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginBottom: 12,
-    backgroundColor: 'white',
-  },
-  button: {
-    backgroundColor: '#111827',
-    paddingVertical: 10,
-    borderRadius: 8,
-    marginTop: 8,
-  },
-  secondary: {
-    backgroundColor: '#4B5563',
-  },
-  buttonText: {
-    color: 'white',
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  error: {
-    color: '#B91C1C',
-    marginBottom: 8,
-  },
-});

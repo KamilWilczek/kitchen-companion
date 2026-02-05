@@ -1,13 +1,14 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, FlatList, RefreshControl, ActivityIndicator, StyleSheet, Pressable, Linking, TextInput, ScrollView } from 'react-native';
+import { View, Text, FlatList, RefreshControl, ActivityIndicator, Pressable, Linking, TextInput, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from 'App';
 
 import type { RecipeOut } from 'types/types';
 import { useRecipesApi } from 'api/recipes';
-import RecipeActionsModal from '@app/components/RecipeActionsModal';
+import RecipeActionsModal from '@app/components/RecipeActionsModal/RecipeActionsModal';
 import { useLoadableData } from 'hooks/useLoadableData';
+import { s } from './RecipesScreen.styles';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'Recipes'>;
 
@@ -67,7 +68,7 @@ const openActions = (recipe: RecipeOut) => {
 
   if (loading) {
     return (
-      <View style={styles.center}>
+      <View style={s.center}>
         <ActivityIndicator />
       </View>
     );
@@ -79,14 +80,14 @@ const openActions = (recipe: RecipeOut) => {
         value={search}
         onChangeText={setSearch}
         placeholder="Search recipes..."
-        style={styles.searchInput}
+        style={s.searchInput}
       />
       {allTags.length > 0 && (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={styles.tagsRow}
-          contentContainerStyle={styles.tagsRowContent}
+          style={s.tagsRow}
+          contentContainerStyle={s.tagsRowContent}
         >
           {allTags.map((tag) => {
             const isSelected = selectedTagId === tag.id;
@@ -94,9 +95,9 @@ const openActions = (recipe: RecipeOut) => {
               <Pressable
                 key={tag.id}
                 onPress={() => setSelectedTagId(isSelected ? null : tag.id)}
-                style={[styles.tag, isSelected && styles.tagSelected]}
+                style={[s.tag, isSelected && s.tagSelected]}
               >
-                <Text style={[styles.tagText, isSelected && styles.tagTextSelected]}>
+                <Text style={[s.tagText, isSelected && s.tagTextSelected]}>
                   {tag.name}
                 </Text>
               </Pressable>
@@ -116,29 +117,29 @@ const openActions = (recipe: RecipeOut) => {
             <Pressable
               onPress={() => navigation.navigate('EditRecipe', { recipe: item })}
               onLongPress={() => openActions(item)}
-              style={styles.card}
+              style={s.card}
             >
-              <Text style={styles.title}>{item.title}</Text>
-              <Text style={styles.ingredientCount}>
+              <Text style={s.title}>{item.title}</Text>
+              <Text style={s.ingredientCount}>
                 {item.ingredients.length} {item.ingredients.length === 1 ? 'ingredient' : 'ingredients'}
               </Text>
               {!!item.source && (
                 isUrl ? (
                   <Text
-                    style={styles.link}
+                    style={s.link}
                     onPress={() => Linking.openURL(item.source!)}
                   >
                     {item.source}
                   </Text>
                 ) : (
-                  <Text style={styles.source}>{item.source}</Text>
+                  <Text style={s.source}>{item.source}</Text>
                 )
               )}
             </Pressable>
           );
         }}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>
+          <Text style={s.emptyText}>
             {search.trim() || selectedTagId ? 'No recipes found.' : 'No recipes yet. Tap "＋" to add one.'}
           </Text>
         }
@@ -178,35 +179,3 @@ const openActions = (recipe: RecipeOut) => {
   );
 }
 
-const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  searchInput: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 12,
-    backgroundColor: '#fff',
-    fontSize: 16,
-  },
-  tagsRow: { marginBottom: 12, flexGrow: 0 },
-  tagsRowContent: { gap: 8, alignItems: 'center' },
-  tag: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    paddingVertical: 2,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-    backgroundColor: '#fff',
-  },
-  tagSelected: { backgroundColor: '#111827', borderColor: '#111827' },
-  tagText: { color: '#111827', fontSize: 12 },
-  tagTextSelected: { color: '#fff' },
-  card: { padding: 12, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, marginBottom: 10, backgroundColor: '#fff' },
-  title: { fontWeight: '700', fontSize: 16, marginBottom: 2 },
-  ingredientCount: { fontSize: 13, color: '#6b7280', marginBottom: 4 },
-  source: { color: '#374151' },
-  link: { color: '#2563eb', textDecorationLine: 'underline' },
-  emptyText: { padding: 12, color: '#6b7280' },
-});

@@ -4,13 +4,14 @@ import {
   Text,
   TextInput,
   Pressable,
-  StyleSheet,
   Alert,
   ActivityIndicator,
 } from 'react-native';
 import { useTagsApi } from 'api/tags';
 import type { IngredientIn, RecipeIn, TagOut, IngredientOut, RecipeOut } from 'types/types';
-import UnitSelect from './UnitSelect';
+import UnitSelect from '@app/components/UnitSelect/UnitSelect';
+import { s } from './RecipeForm.styles';
+import { colors } from '@app/styles/colors';
 
 type RecipeFormInitial = Partial<RecipeOut> & { tags?: TagOut[] };
 
@@ -254,7 +255,7 @@ export default function RecipeForm({
             {!allTags ? (
               <ActivityIndicator />
             ) : allTags.length === 0 ? (
-              <Text style={{ color: '#6b7280' }}>
+              <Text style={{ color: colors.muted }}>
                 No tags yet. Create some in the Tags screen.
               </Text>
             ) : (
@@ -292,68 +293,3 @@ export default function RecipeForm({
   );
 }
 
-const s = StyleSheet.create({
-  container: { gap: 16 },
-
-  label: { fontSize: 16, fontWeight: '600' },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-    backgroundColor: '#fff',
-  },
-
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-    position: 'relative',
-  },
-
-  flex1: { flex: 1 },
-  flex2: { flex: 2 },
-
-  iconBtn: { paddingHorizontal: 10, paddingVertical: 8 },
-  icon: { fontSize: 18 },
-
-  button: {
-    backgroundColor: '#111827',
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  ghost: { backgroundColor: '#31382f' },
-
-  disabled: { opacity: 0.5 },
-  readOnly: { opacity: 0.85 },
-
-  tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  tag: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 999,
-  },
-  tagActive: { backgroundColor: '#111827', borderColor: '#111827' },
-  tagText: { color: '#111827' },
-  tagTextActive: { color: '#fff' },
-
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderWidth: 1.5,
-    borderColor: '#9ca3af',
-    borderRadius: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-  },
-  checkboxOn: { backgroundColor: '#111827', borderColor: '#111827' },
-  checkboxText: { color: '#fff', fontWeight: '900' },
-});

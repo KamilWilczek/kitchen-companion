@@ -2,7 +2,6 @@ import React, { useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   Pressable,
   ViewStyle,
   Modal,
@@ -11,7 +10,9 @@ import {
   TouchableWithoutFeedback,
   findNodeHandle,
 } from 'react-native';
-import { UNITS } from '../constants';
+import { UNITS } from '@app/constants';
+import { colors } from '@app/styles/colors';
+import { s } from './UnitSelect.styles';
 
 type UnitSelectProps = {
   value: string;
@@ -103,7 +104,7 @@ export function UnitSelect({
                 }}
                 style={[s.unitOption, s.unitOptionClear]}
               >
-                <Text style={{ color: '#b91c1c' }}>Clear unit</Text>
+                <Text style={{ color: colors.dangerDark }}>Clear unit</Text>
               </Pressable>
             </ScrollView>
           </View>
@@ -112,46 +113,5 @@ export function UnitSelect({
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  unitSelectContainer: {
-    position: 'relative',
-  },
-  unitSelect: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    backgroundColor: '#fff',
-    minHeight: 42,
-  },
-  unitSelectText: { color: '#111827' },
-  unitSelectChevron: { marginLeft: 6, color: '#6b7280' },
-
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'transparent',
-  },
-
-  unitOptions: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    backgroundColor: '#fff',
-    elevation: 30,
-  },
-  unitOption: {
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-  },
-  unitOptionClear: {
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-  },
-});
 
 export default UnitSelect;

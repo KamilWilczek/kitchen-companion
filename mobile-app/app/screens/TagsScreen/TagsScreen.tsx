@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, FlatList, Alert, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, Pressable, FlatList, Alert, ActivityIndicator } from 'react-native';
 import type { TagOut } from 'types/types';
 import { useTagsApi } from 'api/tags';
 import { useLoadableData } from 'hooks/useLoadableData';
+import { s } from './TagsScreen.styles';
 
 
 export default function TagsScreen() {
@@ -98,16 +99,3 @@ export default function TagsScreen() {
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  row: { flexDirection: 'row', gap: 8, marginBottom: 12 },
-  input: { borderWidth: 1, borderColor: '#d1d5db', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 8 },
-  button: { backgroundColor: '#111827', paddingHorizontal: 16, justifyContent: 'center', borderRadius: 8 },
-  buttonText: { color: '#fff', fontWeight: '600' },
-  tagRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  smallBtn: { backgroundColor: '#111827', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
-  smallBtnText: { color: '#fff' },
-  smallGhost: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, backgroundColor: '#f3f4f6' },
-  smallDanger: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, backgroundColor: '#dc2626' },
-});

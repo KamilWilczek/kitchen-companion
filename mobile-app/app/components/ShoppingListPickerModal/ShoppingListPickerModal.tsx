@@ -4,10 +4,10 @@ import {
   Pressable,
   Modal,
   FlatList,
-  StyleSheet,
 } from 'react-native';
 
 import type { ShoppingListOut } from 'types/types';
+import { s } from './ShoppingListPickerModal.styles';
 
 export default function ShoppingListPickerModal({
   visible,
@@ -63,32 +63,3 @@ export default function ShoppingListPickerModal({
     </Modal>
   );
 }
-
-
-const s = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    padding: 24,
-    justifyContent: 'center',
-  },
-  modalCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 14,
-    gap: 10,
-  },
-  modalTitle: { fontSize: 16, fontWeight: '700' },
-  muted: { color: '#6b7280' },
-  listRow: {
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 10,
-    marginBottom: 8,
-  },
-  listRowText: { fontWeight: '600' },
-  modalCancel: { paddingVertical: 10, alignItems: 'center' },
-  modalCancelText: { color: '#111827', fontWeight: '600' },
-});

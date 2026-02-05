@@ -2,7 +2,6 @@ import {
   View,
   Text,
   FlatList,
-  StyleSheet,
   Pressable,
   TextInput,
   Alert,
@@ -17,8 +16,10 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ShoppingItemOut } from 'types/types';
 import type { RootStackParamList } from 'App';
 import { useShoppingListApi } from 'api/shopping_lists';
-import UnitSelect from '@app/components/UnitSelect';
+import UnitSelect from '@app/components/UnitSelect/UnitSelect';
 import { useLoadableData } from 'hooks/useLoadableData';
+import { s } from './SingleShoppingListScreen.styles';
+import { colors } from '@app/styles/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ShoppingList'>;
 
@@ -189,7 +190,7 @@ export default function SingleShoppingListScreen() {
       </View>
 
       <Pressable onPress={() => removeItem(item.id)} style={s.deleteBtn}>
-        <Text style={{ color: '#fff' }}>Del</Text>
+        <Text style={{ color: colors.white }}>Del</Text>
       </Pressable>
     </Pressable>
   );
@@ -216,7 +217,7 @@ export default function SingleShoppingListScreen() {
           containerStyle={{ flex: 1 }}
         />
         <Pressable onPress={addItem} style={s.addBtn}>
-          <Text style={{ color: '#fff' }}>Add</Text>
+          <Text style={{ color: colors.white }}>Add</Text>
         </Pressable>
       </View>
 
@@ -229,7 +230,7 @@ export default function SingleShoppingListScreen() {
         renderItem={({ item }) => <Row item={item} />}
         ListEmptyComponent={
           !loading ? (
-            <Text style={{ padding: 12, color: '#6b7280' }}>
+            <Text style={{ padding: 12, color: colors.muted }}>
               Your list is empty.
             </Text>
           ) : null
@@ -249,7 +250,7 @@ export default function SingleShoppingListScreen() {
           }}
           style={[s.footerBtn, s.danger]}
         >
-          <Text style={{ color: '#fff' }}>Clear all</Text>
+          <Text style={{ color: colors.white }}>Clear all</Text>
         </Pressable>
       </View>
 
@@ -303,7 +304,7 @@ export default function SingleShoppingListScreen() {
                 onPress={saveEdit}
                 style={[s.footerBtn, s.addBtn]}
               >
-                <Text style={{ color: '#fff' }}>Save</Text>
+                <Text style={{ color: colors.white }}>Save</Text>
               </Pressable>
             </View>
           </View>
@@ -313,87 +314,3 @@ export default function SingleShoppingListScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  addRow: { flexDirection: 'row', gap: 8, marginBottom: 12, position: 'relative', zIndex: 10 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: '#fff',
-  },
-  addBtn: {
-    backgroundColor: '#111827',
-    paddingHorizontal: 14,
-    justifyContent: 'center',
-    borderRadius: 8,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 10,
-    marginBottom: 8,
-    backgroundColor: '#fff',
-    gap: 10,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderWidth: 1.5,
-    borderColor: '#9ca3af',
-    borderRadius: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxOn: { backgroundColor: '#111827', borderColor: '#111827' },
-  checkboxText: { color: '#111827' },
-  checkboxTextOn: { color: '#fff' },
-  name: { fontSize: 16, fontWeight: '600' },
-  meta: { color: '#374151' },
-  source: { fontSize: 12, color: '#6b7280', fontStyle: 'italic' },
-  strike: { textDecorationLine: 'line-through', color: '#9ca3af' },
-  qBtns: { flexDirection: 'row', gap: 8 },
-  smallBtn: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-  },
-  deleteBtn: {
-    backgroundColor: '#dc2626',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  footer: {
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
-  footerBtn: { flex: 1, alignItems: 'center', padding: 12, borderRadius: 10 },
-  ghost: { backgroundColor: '#f3f4f6' },
-  danger: { backgroundColor: '#dc2626' },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  modalCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, gap: 10 },
-  modalTitle: { fontSize: 18, fontWeight: '600', marginBottom: 4 },
-  modalActions: { flexDirection: 'row', gap: 10, marginTop: 8 },
-  removeRecipeBtn: {
-    backgroundColor: '#fee2e2',
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  removeRecipeBtnText: { color: '#b91c1c', fontWeight: '600' },
-});

@@ -4,15 +4,16 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Pressable, View, Text, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import RecipesScreen from '@app/screens/RecipesScreen';
-import NewRecipeScreen from '@app/screens/NewRecipeScreen';
-import EditRecipeScreen from '@app/screens/EditRecipeScreen';
-import TagsScreen from '@app/screens/TagsScreen';
-import ShoppingListsScreen from '@app/screens/ShoppingListsScreen';
-import SingleShoppingListScreen from 'app/screens/SingleShoppingListScreen';
-import AuthScreen from 'app/screens/AuthScreen';
+import RecipesScreen from '@app/screens/RecipesScreen/RecipesScreen';
+import NewRecipeScreen from '@app/screens/NewRecipeScreen/NewRecipeScreen';
+import EditRecipeScreen from '@app/screens/EditRecipeScreen/EditRecipeScreen';
+import TagsScreen from '@app/screens/TagsScreen/TagsScreen';
+import ShoppingListsScreen from '@app/screens/ShoppingListsScreen/ShoppingListsScreen';
+import SingleShoppingListScreen from '@app/screens/SingleShoppingListScreen/SingleShoppingListScreen';
+import AuthScreen from '@app/screens/AuthScreen/AuthScreen';
 import { useAuth, AuthProvider } from 'auth/AuthProvider';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { colors } from '@app/styles/colors';
 
 export type RootStackParamList = {
   Auth: undefined;
@@ -42,11 +43,11 @@ function HomeScreen({ navigation }: NativeStackScreenProps<RootStackParamList, '
           padding: 16,
           borderRadius: 12,
           borderWidth: 1,
-          borderColor: '#e5e7eb',
+          borderColor: colors.borderLight,
         }}
       >
         <Text style={{ fontSize: 18, fontWeight: '500' }}>Recipes</Text>
-        <Text style={{ color: '#6b7280', marginTop: 4 }}>
+        <Text style={{ color: colors.muted, marginTop: 4 }}>
           Browse and edit your recipes.
         </Text>
       </Pressable>
@@ -57,11 +58,11 @@ function HomeScreen({ navigation }: NativeStackScreenProps<RootStackParamList, '
           padding: 16,
           borderRadius: 12,
           borderWidth: 1,
-          borderColor: '#e5e7eb',
+          borderColor: colors.borderLight,
         }}
       >
         <Text style={{ fontSize: 18, fontWeight: '500' }}>Shopping lists</Text>
-        <Text style={{ color: '#6b7280', marginTop: 4 }}>
+        <Text style={{ color: colors.muted, marginTop: 4 }}>
           Manage your multiple lists for different stores or weeks.
         </Text>
       </Pressable>
@@ -72,11 +73,11 @@ function HomeScreen({ navigation }: NativeStackScreenProps<RootStackParamList, '
           padding: 16,
           borderRadius: 12,
           borderWidth: 1,
-          borderColor: '#e5e7eb',
+          borderColor: colors.borderLight,
         }}
       >
         <Text style={{ fontSize: 18, fontWeight: '500' }}>Tags</Text>
-        <Text style={{ color: '#6b7280', marginTop: 4 }}>
+        <Text style={{ color: colors.muted, marginTop: 4 }}>
           Organize recipes with tags.
         </Text>
       </Pressable>
@@ -91,12 +92,12 @@ function HomeScreen({ navigation }: NativeStackScreenProps<RootStackParamList, '
           padding: 16,
           borderRadius: 12,
           borderWidth: 1,
-          borderColor: '#e5e7eb',
+          borderColor: colors.borderLight,
           opacity: 0.5,
         }}
       >
         <Text style={{ fontSize: 18, fontWeight: '500' }}>Meal planner (soon)</Text>
-        <Text style={{ color: '#9ca3af', marginTop: 4 }}>
+        <Text style={{ color: colors.placeholder, marginTop: 4 }}>
           Plan weekly meals (coming soon).
         </Text>
       </Pressable>
@@ -105,7 +106,7 @@ function HomeScreen({ navigation }: NativeStackScreenProps<RootStackParamList, '
         onPress={logout}
         style={{ marginTop: 16, alignSelf: 'flex-start', padding: 8 }}
       >
-        <Text style={{ fontSize: 14, color: '#ef4444' }}>Logout</Text>
+        <Text style={{ fontSize: 14, color: colors.dangerText }}>Logout</Text>
       </Pressable>
     </View>
   );
@@ -150,7 +151,7 @@ function RootNavigator() {
                     hitSlop={12}
                     style={{ paddingHorizontal: 8, paddingVertical: 4 }}
                   >
-                    <Ionicons name="add" size={24} color={tintColor ?? '#111827'} />
+                    <Ionicons name="add" size={24} color={tintColor ?? colors.primary} />
                   </Pressable>
                 </View>
               ),

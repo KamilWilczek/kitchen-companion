@@ -5,7 +5,6 @@ import {
   TextInput,
   Pressable,
   Modal,
-  StyleSheet,
   Alert,
   ActivityIndicator,
   ScrollView,
@@ -14,6 +13,8 @@ import {
 import type { RecipeOut, TagOut } from 'types/types';
 import { useRecipesApi } from 'api/recipes';
 import { useTagsApi } from 'api/tags';
+import { s } from './RecipeActionsModal.styles';
+import { colors } from '@app/styles/colors';
 
 type Props = {
   visible: boolean;
@@ -240,7 +241,7 @@ export default function RecipeActionsModal({
               {!allTags ? (
                 <ActivityIndicator />
               ) : allTags.length === 0 ? (
-                <Text style={{ color: '#6b7280' }}>
+                <Text style={{ color: colors.muted }}>
                   No tags yet. Create some in the Tags screen.
                 </Text>
               ) : (
@@ -283,7 +284,7 @@ export default function RecipeActionsModal({
                 disabled={sharing || !shareEmail.trim()}
                 style={[s.shareBtn, (sharing || !shareEmail.trim()) && s.disabled]}
               >
-                <Text style={{ color: '#fff', fontWeight: '600' }}>
+                <Text style={{ color: colors.white, fontWeight: '600' }}>
                   {sharing ? 'Sharing...' : 'Share'}
                 </Text>
               </Pressable>
@@ -299,7 +300,7 @@ export default function RecipeActionsModal({
                         disabled={sharing}
                         style={[s.unshareBtn, sharing && s.disabled]}
                       >
-                        <Text style={{ color: '#b91c1c' }}>Unshare</Text>
+                        <Text style={{ color: colors.dangerDark }}>Unshare</Text>
                       </Pressable>
                     </View>
                   ))}
@@ -322,7 +323,7 @@ export default function RecipeActionsModal({
                 (!hasChanges || saving || !canSave) && s.disabled,
               ]}
             >
-              <Text style={[s.actionText, { color: '#fff' }]}>
+              <Text style={[s.actionText, { color: colors.white }]}>
                 {saving ? 'Saving…' : 'Save'}
               </Text>
             </Pressable>
@@ -333,84 +334,3 @@ export default function RecipeActionsModal({
   );
 }
 
-const s = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    gap: 12,
-  },
-  title: { fontSize: 18, fontWeight: '700' },
-  label: { fontSize: 13, fontWeight: '600', color: '#374151' },
-
-  input: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: '#fff',
-    fontSize: 16,
-  },
-
-  tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  tag: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 999,
-  },
-  tagActive: { backgroundColor: '#111827', borderColor: '#111827' },
-  tagText: { color: '#111827' },
-  tagTextActive: { color: '#fff' },
-
-  actions: { flexDirection: 'row', gap: 10, marginTop: 6 },
-  actionBtn: { flex: 1, alignItems: 'center', padding: 12, borderRadius: 10 },
-  actionText: { fontWeight: '600' },
-  ghost: { backgroundColor: '#f3f4f6' },
-  primary: { backgroundColor: '#111827' },
-  disabled: { opacity: 0.5 },
-
-  deleteBtn: {
-    marginTop: 6,
-    backgroundColor: '#fee2e2',
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  deleteText: { color: '#b91c1c', fontWeight: '700' },
-
-  shareSection: {
-    marginTop: 12,
-    gap: 8,
-  },
-  shareBtn: {
-    backgroundColor: '#111827',
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  sharedRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 6,
-  },
-  sharedText: {
-    fontSize: 14,
-    color: '#111827',
-  },
-  unshareBtn: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    backgroundColor: '#fee2e2',
-  },
-});

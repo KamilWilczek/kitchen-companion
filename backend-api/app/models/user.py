@@ -16,6 +16,7 @@ class User(Base):
     external_id: Mapped[str | None] = mapped_column(String, unique=True, index=True)
     email: Mapped[str] = mapped_column(String, unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String)
+    plan: Mapped[str] = mapped_column(String, default="free", server_default="free")
     recipes_shared_with_me = relationship(
         "Recipe",
         secondary=recipe_shares,

@@ -12,6 +12,7 @@ import { loginRequest, registerRequest } from '../api/auth';
 
 type AuthContextType = {
   token: string | null;
+  plan: string;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
@@ -47,6 +48,16 @@ function isTokenExpired(token: string): boolean {
   const exp = getTokenExpiration(token);
   if (!exp) return true;
   return Date.now() >= exp;
+}
+
+function getTokenPlan(token: string): string {
+  try {
+    const payload = token.split('.')[1];
+    const decoded = JSON.parse(decodeBase64Url(payload));
+    return decoded.plan ?? 'free';
+  } catch {
+    return 'free';
+  }
 }
 
 const storage = {
@@ -147,8 +158,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
   }
 
+  const plan = token ? getTokenPlan(token) : 'free';
+
   return (
-    <AuthContext.Provider value={{ token, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ token, plan, loading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

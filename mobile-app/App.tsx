@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Pressable, View, Text, ActivityIndicator } from 'react-native';
+import { Alert, Pressable, View, Text, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import RecipesScreen from '@app/screens/RecipesScreen/RecipesScreen';
@@ -11,6 +11,7 @@ import TagsScreen from '@app/screens/TagsScreen/TagsScreen';
 import ShoppingListsScreen from '@app/screens/ShoppingListsScreen/ShoppingListsScreen';
 import SingleShoppingListScreen from '@app/screens/SingleShoppingListScreen/SingleShoppingListScreen';
 import AuthScreen from '@app/screens/AuthScreen/AuthScreen';
+import MealPlannerScreen from '@app/screens/MealPlannerScreen/MealPlannerScreen';
 import { useAuth, AuthProvider } from 'auth/AuthProvider';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { colors } from '@app/styles/colors';
@@ -24,12 +25,13 @@ export type RootStackParamList = {
   Tags: undefined;
   ShoppingLists: undefined;
   ShoppingList: { listId: string, listName: string};
+  MealPlanner: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 function HomeScreen({ navigation }: NativeStackScreenProps<RootStackParamList, 'Home'>) {
-  const { logout } = useAuth();
+  const { logout, plan } = useAuth();
 
   return (
     <View style={{ flex: 1, padding: 24, justifyContent: 'center', gap: 16 }}>
@@ -82,23 +84,27 @@ function HomeScreen({ navigation }: NativeStackScreenProps<RootStackParamList, '
         </Text>
       </Pressable>
 
-      {/* TBA view example */}
       <Pressable
         onPress={() => {
-          // Placeholder for future view
-          // navigation.navigate('SomethingTBA');
+          if (plan === 'free') {
+            Alert.alert('Premium feature', 'Upgrade your plan to access Meal Planner.');
+            return;
+          }
+          navigation.navigate('MealPlanner');
         }}
         style={{
           padding: 16,
           borderRadius: 12,
           borderWidth: 1,
           borderColor: colors.borderLight,
-          opacity: 0.5,
+          opacity: plan === 'free' ? 0.5 : 1,
         }}
       >
-        <Text style={{ fontSize: 18, fontWeight: '500' }}>Meal planner (soon)</Text>
-        <Text style={{ color: colors.placeholder, marginTop: 4 }}>
-          Plan weekly meals (coming soon).
+        <Text style={{ fontSize: 18, fontWeight: '500' }}>
+          Meal planner {plan === 'free' ? '(Premium)' : ''}
+        </Text>
+        <Text style={{ color: colors.muted, marginTop: 4 }}>
+          Plan your weekly meals.
         </Text>
       </Pressable>
 
@@ -182,6 +188,11 @@ function RootNavigator() {
             name="ShoppingList"
             component={SingleShoppingListScreen}
             options={({ route }) => ({ title: route.params.listName || 'Shopping List' })}
+          />
+          <Stack.Screen
+            name="MealPlanner"
+            component={MealPlannerScreen}
+            options={{ title: 'Meal Planner' }}
           />
         </>
       )}

@@ -10,7 +10,10 @@ limiter = Limiter(
     key_func=get_remote_address,
     enabled=settings.RATE_LIMIT_ENABLED,
 )
-app = FastAPI()
+app = FastAPI(
+    docs_url="/docs" if settings.is_dev else None,
+    redoc_url="/redoc" if settings.is_dev else None,
+)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 

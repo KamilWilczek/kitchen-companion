@@ -1,6 +1,9 @@
+import logging
 from uuid import UUID
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 from app.core.db import get_db
 from app.core.security import (
     create_access_token,
@@ -58,11 +61,13 @@ def login(
 ):
     user = db.scalar(select(User).where(User.email == credentials.email))
     if not user or not verify_password(credentials.password, user.password_hash):
+        logger.warning("Failed login attempt for email=%s ip=%s", credentials.email, request.client.host)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
         )
 
+    logger.info("Successful login user=%s", user.id)
     token_data = {"sub": str(user.id), "plan": user.plan}
     access_token = create_access_token(data=token_data)
     refresh_token = create_refresh_token(data={"sub": str(user.id)})
@@ -87,12 +92,15 @@ def refresh(
         if sub is None:
             raise credentials_exception
     except Exception:
+        logger.warning("Invalid refresh token ip=%s", request.client.host)
         raise credentials_exception
 
     user = db.get(User, UUID(sub))
     if user is None:
+        logger.warning("Refresh token for deleted user=%s ip=%s", sub, request.client.host)
         raise credentials_exception
 
+    logger.info("Token refreshed user=%s", user.id)
     token_data = {"sub": str(user.id), "plan": user.plan}
     access_token = create_access_token(data=token_data)
     refresh_token = create_refresh_token(data={"sub": str(user.id)})

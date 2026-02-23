@@ -1,4 +1,8 @@
+import logging
+
 from app.core.db import get_db
+
+logger = logging.getLogger(__name__)
 from app.core.deps import get_current_user, require_premium
 from app.core.security import create_access_token, create_refresh_token, hash_password, verify_password
 from app.models.user import User
@@ -22,6 +26,7 @@ def change_password(
     current_user: User = Depends(get_current_user),
 ):
     if not verify_password(body.current_password, current_user.password_hash):
+        logger.warning("Failed password change attempt user=%s", current_user.id)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Current password is incorrect",
@@ -29,6 +34,7 @@ def change_password(
 
     current_user.password_hash = hash_password(body.new_password)
     db.commit()
+    logger.info("Password changed user=%s", current_user.id)
 
 
 @router.put("/plan", response_model=Token)
@@ -37,9 +43,11 @@ def update_plan(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    old_plan = current_user.plan
     current_user.plan = body.plan
     db.commit()
     db.refresh(current_user)
+    logger.info("Plan changed user=%s from=%s to=%s", current_user.id, old_plan, body.plan)
 
     token_data = {"sub": str(current_user.id), "plan": current_user.plan}
     access_token = create_access_token(data=token_data)

@@ -1,6 +1,9 @@
+import logging
 from uuid import UUID
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 from app.core.db import get_db
 from app.core.security import decode_token
 from app.models.user import User
@@ -42,10 +45,12 @@ def get_current_user(
                 raise credentials_exception
             user_id = UUID(sub)
         except (JWTError, ValueError):
+            logger.warning("Invalid or expired access token")
             raise credentials_exception
 
         user = _get_user_by_id(db, user_id)
         if user is None:
+            logger.warning("Access token for unknown user=%s", user_id)
             raise credentials_exception
         return user
 
@@ -62,6 +67,7 @@ def require_premium(
     current_user: User = Depends(get_current_user),
 ) -> User:
     if current_user.plan != "premium":
+        logger.warning("Premium access denied user=%s plan=%s", current_user.id, current_user.plan)
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Premium plan required",

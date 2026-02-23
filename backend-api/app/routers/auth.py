@@ -9,15 +9,21 @@ from app.core.security import (
 )
 from app.models.user import User
 from app.schemas.auth import LoginRequest, Token, UserCreate, UserOut
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+
+limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter()
 
 
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
+@limiter.limit("5/minute")
 def register(
+    request: Request,
     data: UserCreate,
     db: Session = Depends(get_db),
 ):
@@ -39,7 +45,9 @@ def register(
 
 
 @router.post("/login", response_model=Token)
+@limiter.limit("5/minute")
 def login(
+    request: Request,
     credentials: LoginRequest,
     db: Session = Depends(get_db),
 ):

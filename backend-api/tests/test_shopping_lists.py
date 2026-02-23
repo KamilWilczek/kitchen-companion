@@ -1115,3 +1115,194 @@ class TestShoppingLists:
 
         assert response.status_code == 404
         assert response.json()["detail"] == "List not found"
+
+
+class TestShareShoppingList:
+    def test_share_with_another_user(
+        self,
+        client: TestClient,
+        auth_headers: dict[str, str],
+        db_session: Session,
+        user_factory: t.Callable[..., User],
+        shopping_list_factory: t.Callable[..., ShoppingList],
+    ) -> None:
+        other = user_factory(email="other@example.com")
+        lst = shopping_list_factory()
+
+        res = client.post(
+            f"/shopping-lists/{lst.id}/share",
+            json={"shared_with_email": "other@example.com"},
+            headers=auth_headers,
+        )
+
+        assert res.status_code == 204
+        db_session.refresh(lst)
+        assert other.id in [u.id for u in lst.shared_with_users]
+
+    def test_share_with_self_rejected(
+        self,
+        client: TestClient,
+        auth_headers: dict[str, str],
+        shopping_list_factory: t.Callable[..., ShoppingList],
+    ) -> None:
+        lst = shopping_list_factory()
+
+        res = client.post(
+            f"/shopping-lists/{lst.id}/share",
+            json={"shared_with_email": "test@example.com"},
+            headers=auth_headers,
+        )
+
+        assert res.status_code == 400
+
+    def test_share_target_user_not_found(
+        self,
+        client: TestClient,
+        auth_headers: dict[str, str],
+        shopping_list_factory: t.Callable[..., ShoppingList],
+    ) -> None:
+        lst = shopping_list_factory()
+
+        res = client.post(
+            f"/shopping-lists/{lst.id}/share",
+            json={"shared_with_email": "nobody@example.com"},
+            headers=auth_headers,
+        )
+
+        assert res.status_code == 404
+
+    def test_share_list_not_found(
+        self,
+        client: TestClient,
+        auth_headers: dict[str, str],
+        user_factory: t.Callable[..., User],
+    ) -> None:
+        user_factory(email="other@example.com")
+
+        res = client.post(
+            f"/shopping-lists/{uuid4()}/share",
+            json={"shared_with_email": "other@example.com"},
+            headers=auth_headers,
+        )
+
+        assert res.status_code == 404
+
+    def test_duplicate_share_is_noop(
+        self,
+        client: TestClient,
+        auth_headers: dict[str, str],
+        db_session: Session,
+        user_factory: t.Callable[..., User],
+        shopping_list_factory: t.Callable[..., ShoppingList],
+    ) -> None:
+        other = user_factory(email="other@example.com")
+        lst = shopping_list_factory()
+
+        client.post(
+            f"/shopping-lists/{lst.id}/share",
+            json={"shared_with_email": "other@example.com"},
+            headers=auth_headers,
+        )
+        res = client.post(
+            f"/shopping-lists/{lst.id}/share",
+            json={"shared_with_email": "other@example.com"},
+            headers=auth_headers,
+        )
+
+        assert res.status_code == 204
+        db_session.refresh(lst)
+        assert len([u for u in lst.shared_with_users if u.id == other.id]) == 1
+
+    def test_non_owner_cannot_share(
+        self,
+        client: TestClient,
+        auth_headers: dict[str, str],
+        user_factory: t.Callable[..., User],
+        shopping_list_factory: t.Callable[..., ShoppingList],
+    ) -> None:
+        owner = user_factory()
+        other = user_factory()
+        lst = shopping_list_factory(user=owner)
+
+        res = client.post(
+            f"/shopping-lists/{lst.id}/share",
+            json={"shared_with_email": other.email},
+            headers=auth_headers,
+        )
+
+        assert res.status_code == 404
+
+
+class TestUnshareShoppingList:
+    def test_unshare_removes_user(
+        self,
+        client: TestClient,
+        auth_headers: dict[str, str],
+        db_session: Session,
+        user_factory: t.Callable[..., User],
+        shopping_list_factory: t.Callable[..., ShoppingList],
+    ) -> None:
+        other = user_factory()
+        lst = shopping_list_factory()
+        lst.shared_with_users.append(other)
+        db_session.commit()
+
+        res = client.delete(
+            f"/shopping-lists/{lst.id}/share/{other.id}",
+            headers=auth_headers,
+        )
+
+        assert res.status_code == 204
+        db_session.refresh(lst)
+        assert other.id not in [u.id for u in lst.shared_with_users]
+
+    def test_unshare_list_not_found(
+        self,
+        client: TestClient,
+        auth_headers: dict[str, str],
+        user_factory: t.Callable[..., User],
+    ) -> None:
+        other = user_factory()
+
+        res = client.delete(
+            f"/shopping-lists/{uuid4()}/share/{other.id}",
+            headers=auth_headers,
+        )
+
+        assert res.status_code == 404
+
+    def test_unshare_user_not_found(
+        self,
+        client: TestClient,
+        auth_headers: dict[str, str],
+        shopping_list_factory: t.Callable[..., ShoppingList],
+    ) -> None:
+        lst = shopping_list_factory()
+
+        res = client.delete(
+            f"/shopping-lists/{lst.id}/share/{uuid4()}",
+            headers=auth_headers,
+        )
+
+        assert res.status_code == 404
+
+    def test_non_owner_cannot_unshare(
+        self,
+        client: TestClient,
+        auth_headers: dict[str, str],
+        db_session: Session,
+        user_factory: t.Callable[..., User],
+        shopping_list_factory: t.Callable[..., ShoppingList],
+    ) -> None:
+        owner = user_factory()
+        other = user_factory()
+        lst = shopping_list_factory(user=owner)
+        lst.shared_with_users.append(other)
+        db_session.commit()
+
+        res = client.delete(
+            f"/shopping-lists/{lst.id}/share/{other.id}",
+            headers=auth_headers,
+        )
+
+        assert res.status_code == 404

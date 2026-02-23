@@ -14,7 +14,7 @@ from app.models.shopping_item import ShoppingItem, ShoppingList
 from app.models.tag import Tag
 from app.models.user import User
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 
 # Use an isolated DB file for migration support
@@ -41,6 +41,13 @@ def apply_migrations():
 
 # Global engine; schema is created by Alembic
 engine = create_engine(TEST_DB_URL, connect_args={"check_same_thread": False})
+
+
+@event.listens_for(engine, "connect")
+def set_sqlite_fk_pragma(dbapi_connection, _connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
 
 # Session factory, bound per-test via connection
 SessionLocal = sessionmaker(autocommit=False, autoflush=False)

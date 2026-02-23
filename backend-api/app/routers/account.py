@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from app.core.config import settings
 from app.core.db import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_premium
 from app.core.security import create_access_token, hash_password, verify_password
 from app.models.user import User
 from app.schemas.account import AccountOut, ChangePasswordRequest, UpdatePlanRequest
@@ -50,3 +50,11 @@ def update_plan(
     )
 
     return Token(access_token=access_token)
+
+
+# --- Example: premium-only endpoint ---
+# Use `require_premium` instead of `get_current_user` to guard any endpoint.
+# Free users get 403 Forbidden automatically.
+@router.get("/premium-check")
+def premium_check(current_user: User = Depends(require_premium)):
+    return {"message": f"Welcome, premium user {current_user.email}!"}

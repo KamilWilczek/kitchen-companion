@@ -56,3 +56,14 @@ def get_current_user(
         )
 
     return _get_or_create_user_by_external_id(db, x_user_id)
+
+
+def require_premium(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    if current_user.plan != "premium":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Premium plan required",
+        )
+    return current_user

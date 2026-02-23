@@ -1,10 +1,10 @@
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class TagIn(BaseModel):
-    name: str
+    name: str = Field(max_length=100)
 
 
 class TagOut(TagIn):

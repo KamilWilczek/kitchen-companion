@@ -2,13 +2,13 @@ from uuid import UUID
 
 from app.schemas.shopping_item import SharedUserOut
 from app.schemas.tag import TagOut
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class Ingredient(BaseModel):
-    name: str
-    quantity: float = 0
-    unit: str = ""
+    name: str = Field(max_length=255)
+    quantity: float = Field(default=0, ge=0, le=999999)
+    unit: str = Field(default="", max_length=50)
 
     model_config = ConfigDict(extra="forbid")
 
@@ -32,9 +32,9 @@ class IngredientsToShoppingList(BaseModel):
 
 
 class RecipeBase(BaseModel):
-    title: str
-    description: str
-    source: str | None = None
+    title: str = Field(max_length=255)
+    description: str = Field(max_length=10000)
+    source: str | None = Field(default=None, max_length=1000)
 
     model_config = ConfigDict(extra="forbid")
 
@@ -47,9 +47,9 @@ class RecipeIn(RecipeBase):
 class RecipePatch(BaseModel):
     # None => don't change
     # []   => clear (for list fields)
-    title: str | None = None
-    description: str | None = None
-    source: str | None = None
+    title: str | None = Field(default=None, max_length=255)
+    description: str | None = Field(default=None, max_length=10000)
+    source: str | None = Field(default=None, max_length=1000)
     ingredients: list[IngredientPatchIn] | None = None
     tag_ids: list[UUID] | None = None
 
@@ -66,6 +66,6 @@ class RecipeOut(RecipeBase):
 
 
 class RecipeShareIn(BaseModel):
-    shared_with_email: str
+    shared_with_email: EmailStr
 
     model_config = ConfigDict(extra="forbid")

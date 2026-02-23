@@ -20,10 +20,10 @@ shopping_list_shares = Table(
     Column(
         "list_id",
         PG_UUID(as_uuid=True),
-        ForeignKey("shopping_lists.id"),
+        ForeignKey("shopping_lists.id", ondelete="CASCADE"),
         primary_key=True,
     ),
-    Column("user_id", PG_UUID(as_uuid=True), ForeignKey("users.id"), primary_key=True),
+    Column("user_id", PG_UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
     UniqueConstraint("list_id", "user_id", name="uq_shopping_list_share"),
 )
 
@@ -34,10 +34,10 @@ class ShoppingItem(Base):
         PG_UUID(as_uuid=True), primary_key=True, default=uuid4
     )
     list_id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True), ForeignKey("shopping_lists.id"), index=True
+        PG_UUID(as_uuid=True), ForeignKey("shopping_lists.id", ondelete="CASCADE"), index=True
     )
     user_id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True), ForeignKey("users.id"), index=True
+        PG_UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
     name: Mapped[str]
     unit: Mapped[str | None] = mapped_column(nullable=True, default=None)
@@ -45,7 +45,7 @@ class ShoppingItem(Base):
     checked: Mapped[bool] = mapped_column(default=False)
     recipe_id: Mapped[UUID | None] = mapped_column(
         PG_UUID(as_uuid=True),
-        ForeignKey("recipes.id"),
+        ForeignKey("recipes.id", ondelete="SET NULL"),
         default=None,
         nullable=True,
         index=True,
@@ -79,7 +79,7 @@ class ShoppingList(Base):
         PG_UUID(as_uuid=True), primary_key=True, default=uuid4
     )
     user_id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True), ForeignKey("users.id"), index=True
+        PG_UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
     name: Mapped[str]
     description: Mapped[str | None] = mapped_column(default=None)

@@ -9,21 +9,21 @@ recipe_tag = Table(
     "recipe_tags",
     Base.metadata,
     Column(
-        "recipe_id", PG_UUID(as_uuid=True), ForeignKey("recipes.id"), primary_key=True
+        "recipe_id", PG_UUID(as_uuid=True), ForeignKey("recipes.id", ondelete="CASCADE"), primary_key=True
     ),
-    Column("tag_id", PG_UUID(as_uuid=True), ForeignKey("tags.id"), primary_key=True),
+    Column("tag_id", PG_UUID(as_uuid=True), ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True),
 )
 
 recipe_shares = Table(
     "recipe_shares",
     Base.metadata,
     Column(
-        "recipe_id", PG_UUID(as_uuid=True), ForeignKey("recipes.id"), primary_key=True
+        "recipe_id", PG_UUID(as_uuid=True), ForeignKey("recipes.id", ondelete="CASCADE"), primary_key=True
     ),
     Column(
         "user_id",
         PG_UUID(as_uuid=True),
-        ForeignKey("users.id"),
+        ForeignKey("users.id", ondelete="CASCADE"),
         primary_key=True,
     ),
 )
@@ -36,7 +36,7 @@ class Ingredient(Base):
         PG_UUID(as_uuid=True), primary_key=True, default=uuid4
     )
     recipe_id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True), ForeignKey("recipes.id")
+        PG_UUID(as_uuid=True), ForeignKey("recipes.id", ondelete="CASCADE")
     )
 
     name: Mapped[str]
@@ -53,7 +53,7 @@ class Recipe(Base):
         PG_UUID(as_uuid=True), primary_key=True, default=uuid4
     )
     user_id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True), ForeignKey("users.id"), index=True
+        PG_UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
 
     title: Mapped[str]

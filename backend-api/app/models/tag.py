@@ -14,7 +14,7 @@ class Tag(Base):
         PG_UUID(as_uuid=True), primary_key=True, default=uuid4
     )
     user_id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True), ForeignKey("users.id"), index=True
+        PG_UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
     name: Mapped[str] = mapped_column(nullable=False)
     recipes = relationship("Recipe", secondary=recipe_tag, back_populates="tags")

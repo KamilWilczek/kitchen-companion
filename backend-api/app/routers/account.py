@@ -56,6 +56,16 @@ def update_plan(
     return Token(access_token=access_token, refresh_token=refresh_token)
 
 
+@router.delete("/me", status_code=204)
+def delete_account(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    logger.info("Account deleted user=%s email=%s", current_user.id, current_user.email)
+    db.delete(current_user)
+    db.commit()
+
+
 # --- Example: premium-only endpoint ---
 # Use `require_premium` instead of `get_current_user` to guard any endpoint.
 # Free users get 403 Forbidden automatically.

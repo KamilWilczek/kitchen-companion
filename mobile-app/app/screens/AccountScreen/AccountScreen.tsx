@@ -14,7 +14,7 @@ import { s } from './AccountScreen.styles';
 
 export default function AccountScreen() {
   const { plan, logout, updateToken } = useAuth();
-  const { getMe, changePassword, updatePlan } = useAccountApi();
+  const { getMe, changePassword, updatePlan, deleteAccount } = useAccountApi();
 
   const [email, setEmail] = useState<string | null>(null);
   const [loadingInfo, setLoadingInfo] = useState(true);
@@ -160,6 +160,33 @@ export default function AccountScreen() {
 
       <Pressable style={s.logoutButton} onPress={logout}>
         <Text style={s.logoutText}>Logout</Text>
+      </Pressable>
+
+      <Pressable
+        style={s.logoutButton}
+        onPress={() =>
+          Alert.alert(
+            'Delete Account',
+            'This will permanently delete your account and all your data (recipes, shopping lists, tags). This cannot be undone.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              {
+                text: 'Delete',
+                style: 'destructive',
+                onPress: async () => {
+                  try {
+                    await deleteAccount();
+                    await logout();
+                  } catch (e: any) {
+                    Alert.alert('Error', e.message ?? 'Failed to delete account');
+                  }
+                },
+              },
+            ],
+          )
+        }
+      >
+        <Text style={s.logoutText}>Delete Account</Text>
       </Pressable>
     </ScrollView>
   );

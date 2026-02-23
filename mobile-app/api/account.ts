@@ -31,5 +31,8 @@ export function useAccountApi() {
         method: 'PUT',
         body: JSON.stringify({ plan }),
       }),
+
+    deleteAccount: () =>
+      api<void>('/account/me', { method: 'DELETE' }),
   };
 }

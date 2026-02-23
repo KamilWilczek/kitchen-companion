@@ -136,7 +136,7 @@ def share_shopping_list(
     if not shopping_list:
         raise HTTPException(status_code=404, detail="List not found")
 
-    if payload.shared_with_email == current_user.id:
+    if payload.shared_with_email == current_user.email:
         raise HTTPException(status_code=400, detail="Cannot share list with yourself")
 
     shared_user = db.scalar(select(User).where(User.email == payload.shared_with_email))

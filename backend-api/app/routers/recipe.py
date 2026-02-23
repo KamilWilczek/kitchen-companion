@@ -66,7 +66,9 @@ def add_recipe(
     ]
 
     if recipe_in.tag_ids:
-        recipe.tags = db.scalars(select(Tag).where(Tag.id.in_(recipe_in.tag_ids))).all()
+        recipe.tags = db.scalars(
+            select(Tag).where(Tag.id.in_(recipe_in.tag_ids), Tag.user_id == current_user.id)
+        ).all()
 
     db.add(recipe)
     db.commit()
@@ -96,7 +98,9 @@ def update_recipe(
     )
 
     if recipe_in.tag_ids:
-        recipe.tags = db.scalars(select(Tag).where(Tag.id.in_(recipe_in.tag_ids))).all()
+        recipe.tags = db.scalars(
+            select(Tag).where(Tag.id.in_(recipe_in.tag_ids), Tag.user_id == current_user.id)
+        ).all()
     else:
         recipe.tags = []
 
@@ -132,7 +136,9 @@ def patch_recipe(
 
     if patch.tag_ids is not None:
         if patch.tag_ids:
-            recipe.tags = db.scalars(select(Tag).where(Tag.id.in_(patch.tag_ids))).all()
+            recipe.tags = db.scalars(
+                select(Tag).where(Tag.id.in_(patch.tag_ids), Tag.user_id == current_user.id)
+            ).all()
         else:
             recipe.tags = []
 
@@ -173,7 +179,7 @@ def share_recipe(
     if not recipe:
         raise HTTPException(status_code=404, detail="Recipe not found")
 
-    if payload.shared_with_email == current_user.id:
+    if payload.shared_with_email == current_user.email:
         raise HTTPException(status_code=400, detail="Cannot share recipe with yourself")
 
     shared_user = db.scalar(select(User).where(User.email == payload.shared_with_email))

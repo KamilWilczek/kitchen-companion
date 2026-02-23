@@ -2,6 +2,7 @@ import { API_URL } from '@env';
 
 type TokenResponse = {
   access_token: string;
+  refresh_token: string;
   token_type: string;
 };
 
@@ -37,4 +38,20 @@ export async function registerRequest(
     const text = await res.text().catch(() => '');
     throw new Error(text || 'Registration failed');
   }
+}
+
+export async function refreshTokenRequest(
+  refreshToken: string,
+): Promise<TokenResponse> {
+  const res = await fetch(`${API_URL}/auth/refresh`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh_token: refreshToken }),
+  });
+
+  if (!res.ok) {
+    throw new Error('Token refresh failed');
+  }
+
+  return res.json();
 }

@@ -2,7 +2,7 @@ from uuid import UUID
 
 from app.core.config import settings
 from app.core.db import get_db
-from app.core.security import decode_access_token
+from app.core.security import decode_token
 from app.models.user import User
 from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -36,7 +36,7 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
         try:
-            payload = decode_access_token(token)
+            payload = decode_token(token, expected_type="access")
             sub: str | None = payload.get("sub")
             if sub is None:
                 raise credentials_exception

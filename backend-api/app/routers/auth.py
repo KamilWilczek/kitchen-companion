@@ -1,14 +1,16 @@
-from datetime import timedelta
+from uuid import UUID
 
 from app.core.config import settings
 from app.core.db import get_db
 from app.core.security import (
     create_access_token,
+    create_refresh_token,
+    decode_token,
     hash_password,
     verify_password,
 )
 from app.models.user import User
-from app.schemas.auth import LoginRequest, Token, UserCreate, UserOut
+from app.schemas.auth import LoginRequest, RefreshRequest, Token, UserCreate, UserOut
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -61,10 +63,38 @@ def login(
             detail="Incorrect email or password",
         )
 
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": str(user.id), "plan": user.plan},
-        expires_delta=access_token_expires,
-    )
+    token_data = {"sub": str(user.id), "plan": user.plan}
+    access_token = create_access_token(data=token_data)
+    refresh_token = create_refresh_token(data={"sub": str(user.id)})
 
-    return Token(access_token=access_token)
+    return Token(access_token=access_token, refresh_token=refresh_token)
+
+
+@router.post("/refresh", response_model=Token)
+@limiter.limit("10/minute")
+def refresh(
+    request: Request,
+    body: RefreshRequest,
+    db: Session = Depends(get_db),
+):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid or expired refresh token",
+    )
+    try:
+        payload = decode_token(body.refresh_token, expected_type="refresh")
+        sub: str | None = payload.get("sub")
+        if sub is None:
+            raise credentials_exception
+    except Exception:
+        raise credentials_exception
+
+    user = db.get(User, UUID(sub))
+    if user is None:
+        raise credentials_exception
+
+    token_data = {"sub": str(user.id), "plan": user.plan}
+    access_token = create_access_token(data=token_data)
+    refresh_token = create_refresh_token(data={"sub": str(user.id)})
+
+    return Token(access_token=access_token, refresh_token=refresh_token)

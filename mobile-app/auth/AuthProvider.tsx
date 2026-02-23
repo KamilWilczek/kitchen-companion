@@ -4,11 +4,12 @@ import React, {
   useState,
   useEffect,
   useRef,
+  useCallback,
   ReactNode,
 } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
-import { loginRequest, registerRequest } from '../api/auth';
+import { loginRequest, registerRequest, refreshTokenRequest } from '../api/auth';
 
 type AuthContextType = {
   token: string | null;
@@ -17,12 +18,14 @@ type AuthContextType = {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  updateToken: (newToken: string) => Promise<void>;
+  updateToken: (newAccessToken: string, newRefreshToken?: string) => Promise<void>;
+  refreshSession: () => Promise<string | null>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const TOKEN_KEY = 'authToken';
+const REFRESH_TOKEN_KEY = 'refreshToken';
 
 function decodeBase64Url(str: string): string {
   let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
@@ -40,8 +43,7 @@ function getTokenExpiration(token: string): number | null {
     if (decoded.exp) {
       return decoded.exp * 1000;
     }
-  } catch {
-  }
+  } catch {}
   return null;
 }
 
@@ -87,49 +89,100 @@ const storage = {
   },
 };
 
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const expirationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const refreshTokenRef = useRef<string | null>(null);
+  const refreshPromiseRef = useRef<Promise<string | null> | null>(null);
 
-  const clearExpirationTimer = () => {
-    if (expirationTimer.current) {
-      clearTimeout(expirationTimer.current);
-      expirationTimer.current = null;
+  const clearRefreshTimer = () => {
+    if (refreshTimer.current) {
+      clearTimeout(refreshTimer.current);
+      refreshTimer.current = null;
     }
   };
 
-  const scheduleAutoLogout = (tokenValue: string) => {
-    clearExpirationTimer();
-    const exp = getTokenExpiration(tokenValue);
+  const clearAllTokens = useCallback(async () => {
+    clearRefreshTimer();
+    refreshTokenRef.current = null;
+    refreshPromiseRef.current = null;
+    await storage.removeItem(TOKEN_KEY);
+    await storage.removeItem(REFRESH_TOKEN_KEY);
+    setToken(null);
+  }, []);
+
+  const storeTokenPair = useCallback(async (accessToken: string, newRefreshToken: string) => {
+    await storage.setItem(TOKEN_KEY, accessToken);
+    await storage.setItem(REFRESH_TOKEN_KEY, newRefreshToken);
+    refreshTokenRef.current = newRefreshToken;
+    setToken(accessToken);
+  }, []);
+
+  const scheduleAutoRefresh = useCallback((accessToken: string) => {
+    clearRefreshTimer();
+    const exp = getTokenExpiration(accessToken);
     if (!exp) return;
 
-    const msUntilExpiry = exp - Date.now();
-    if (msUntilExpiry <= 0) {
-      storage.removeItem(TOKEN_KEY);
-      setToken(null);
-      return;
+    // Refresh 60 seconds before expiry, minimum 10 seconds from now
+    const msUntilRefresh = Math.max(exp - Date.now() - 60_000, 10_000);
+
+    refreshTimer.current = setTimeout(() => {
+      refreshSession();
+    }, msUntilRefresh);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const refreshSession = useCallback(async (): Promise<string | null> => {
+    if (refreshPromiseRef.current) {
+      return refreshPromiseRef.current;
     }
 
-    expirationTimer.current = setTimeout(() => {
-      storage.removeItem(TOKEN_KEY);
-      setToken(null);
-    }, msUntilExpiry);
-  };
+    const doRefresh = async (): Promise<string | null> => {
+      const currentRefreshToken = refreshTokenRef.current;
+      if (!currentRefreshToken || isTokenExpired(currentRefreshToken)) {
+        await clearAllTokens();
+        return null;
+      }
+
+      try {
+        const result = await refreshTokenRequest(currentRefreshToken);
+        await storeTokenPair(result.access_token, result.refresh_token);
+        scheduleAutoRefresh(result.access_token);
+        return result.access_token;
+      } catch {
+        await clearAllTokens();
+        return null;
+      } finally {
+        refreshPromiseRef.current = null;
+      }
+    };
+
+    refreshPromiseRef.current = doRefresh();
+    return refreshPromiseRef.current;
+  }, [clearAllTokens, storeTokenPair, scheduleAutoRefresh]);
 
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const stored = await storage.getItem(TOKEN_KEY);
-        if (mounted && stored) {
-          if (isTokenExpired(stored)) {
-            await storage.removeItem(TOKEN_KEY);
-          } else {
-            setToken(stored);
-            scheduleAutoLogout(stored);
+        const storedAccess = await storage.getItem(TOKEN_KEY);
+        const storedRefresh = await storage.getItem(REFRESH_TOKEN_KEY);
+
+        if (storedRefresh) {
+          refreshTokenRef.current = storedRefresh;
+        }
+
+        if (storedAccess && !isTokenExpired(storedAccess)) {
+          if (mounted) {
+            setToken(storedAccess);
+            scheduleAutoRefresh(storedAccess);
           }
+        } else if (storedRefresh && !isTokenExpired(storedRefresh)) {
+          await refreshSession();
+        } else {
+          await storage.removeItem(TOKEN_KEY);
+          await storage.removeItem(REFRESH_TOKEN_KEY);
         }
       } finally {
         if (mounted) setLoading(false);
@@ -137,15 +190,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })();
     return () => {
       mounted = false;
-      clearExpirationTimer();
+      clearRefreshTimer();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function login(email: string, password: string) {
     const result = await loginRequest(email, password);
-    await storage.setItem(TOKEN_KEY, result.access_token);
-    setToken(result.access_token);
-    scheduleAutoLogout(result.access_token);
+    await storeTokenPair(result.access_token, result.refresh_token);
+    scheduleAutoRefresh(result.access_token);
   }
 
   async function register(email: string, password: string) {
@@ -154,21 +207,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function logout() {
-    clearExpirationTimer();
-    await storage.removeItem(TOKEN_KEY);
-    setToken(null);
+    await clearAllTokens();
   }
 
-  async function updateToken(newToken: string) {
-    await storage.setItem(TOKEN_KEY, newToken);
-    setToken(newToken);
-    scheduleAutoLogout(newToken);
+  async function updateToken(newAccessToken: string, newRefreshToken?: string) {
+    await storage.setItem(TOKEN_KEY, newAccessToken);
+    if (newRefreshToken) {
+      await storage.setItem(REFRESH_TOKEN_KEY, newRefreshToken);
+      refreshTokenRef.current = newRefreshToken;
+    }
+    setToken(newAccessToken);
+    scheduleAutoRefresh(newAccessToken);
   }
 
   const plan = token ? getTokenPlan(token) : 'free';
 
   return (
-    <AuthContext.Provider value={{ token, plan, loading, login, register, logout, updateToken }}>
+    <AuthContext.Provider
+      value={{ token, plan, loading, login, register, logout, updateToken, refreshSession }}
+    >
       {children}
     </AuthContext.Provider>
   );

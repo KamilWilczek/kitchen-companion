@@ -1,9 +1,6 @@
-from datetime import timedelta
-
-from app.core.config import settings
 from app.core.db import get_db
 from app.core.deps import get_current_user, require_premium
-from app.core.security import create_access_token, hash_password, verify_password
+from app.core.security import create_access_token, create_refresh_token, hash_password, verify_password
 from app.models.user import User
 from app.schemas.account import AccountOut, ChangePasswordRequest, UpdatePlanRequest
 from app.schemas.auth import Token
@@ -44,12 +41,11 @@ def update_plan(
     db.commit()
     db.refresh(current_user)
 
-    access_token = create_access_token(
-        data={"sub": str(current_user.id), "plan": current_user.plan},
-        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
-    )
+    token_data = {"sub": str(current_user.id), "plan": current_user.plan}
+    access_token = create_access_token(data=token_data)
+    refresh_token = create_refresh_token(data={"sub": str(current_user.id)})
 
-    return Token(access_token=access_token)
+    return Token(access_token=access_token, refresh_token=refresh_token)
 
 
 # --- Example: premium-only endpoint ---

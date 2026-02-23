@@ -46,7 +46,7 @@ export default function AccountScreen() {
     setSwitching(true);
     try {
       const result = await updatePlan(newPlan);
-      await updateToken(result.access_token);
+      await updateToken(result.access_token, result.refresh_token);
     } catch (e: any) {
       Alert.alert('Error', e.message ?? 'Failed to update plan');
     } finally {

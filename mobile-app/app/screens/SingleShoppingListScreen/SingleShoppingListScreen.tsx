@@ -8,6 +8,7 @@ import {
   RefreshControl,
   Modal,
 } from 'react-native';
+import { AutocompleteInput } from '@app/components/AutocompleteInput/AutocompleteInput';
 import { useMemo, useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
@@ -248,11 +249,11 @@ export default function SingleShoppingListScreen() {
   return (
     <View style={{ flex: 1, padding: 12 }}>
       <View style={s.addRow}>
-        <TextInput
+        <AutocompleteInput
           value={name}
           onChangeText={setName}
           placeholder="Item"
-          style={[s.input, { flex: 2 }]}
+          style={{ flex: 2 }}
         />
         <TextInput
           value={qty}

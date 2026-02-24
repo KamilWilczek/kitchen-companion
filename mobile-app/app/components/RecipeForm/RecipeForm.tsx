@@ -13,6 +13,7 @@ import { useTagsApi } from 'api/tags';
 import type { IngredientIn, RecipeIn, TagOut, IngredientOut, RecipeOut, CategoryOut } from 'types/types';
 import type { RootStackParamList } from 'App';
 import UnitSelect from '@app/components/UnitSelect/UnitSelect';
+import { AutocompleteInput } from '@app/components/AutocompleteInput/AutocompleteInput';
 import { s } from './RecipeForm.styles';
 import { colors } from '@app/styles/colors';
 
@@ -209,8 +210,8 @@ export default function RecipeForm({
                 </Pressable>
               ) : null}
 
-              <TextInput
-                style={[s.input, s.flex2, ingredientsReadOnly && s.readOnly]}
+              <AutocompleteInput
+                style={[s.flex2, ingredientsReadOnly && s.readOnly]}
                 placeholder="name"
                 value={item.name}
                 editable={!ingredientsReadOnly}

@@ -1,5 +1,5 @@
 from app.core.config import settings
-from app.routers import account, auth, categories, recipe, shopping_lists, tags
+from app.routers import account, auth, categories, recipe, shopping_lists, suggestions, tags
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -38,3 +38,4 @@ app.include_router(recipe.router, prefix="/recipes", tags=["recipes"])
 app.include_router(shopping_lists.router, prefix="/shopping-lists", tags=["shopping"])
 app.include_router(tags.router, prefix="/tags", tags=["tags"])
 app.include_router(account.router, prefix="/account", tags=["account"])
+app.include_router(suggestions.router, prefix="/suggestions", tags=["suggestions"])

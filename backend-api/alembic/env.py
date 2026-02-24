@@ -14,8 +14,10 @@ from sqlalchemy import engine_from_config, pool
 # access to the values within the .ini file in use.
 config = context.config
 
-# Override with the app's DATABASE_URL so migrations always target the right DB.
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+# Use DATABASE_URL from settings, but respect any URL already set externally
+# (e.g. the test suite passes a SQLite URL via alembic_cfg.set_main_option).
+if not config.get_main_option("sqlalchemy.url"):
+    config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

@@ -1,4 +1,8 @@
+from contextlib import asynccontextmanager
+
 from app.core.config import settings
+from app.core.db import SessionLocal
+from app.core.predefined_categories import seed_predefined_categories
 from app.routers import account, auth, categories, recipe, shopping_lists, suggestions, tags
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,7 +15,20 @@ limiter = Limiter(
     key_func=get_remote_address,
     enabled=settings.RATE_LIMIT_ENABLED,
 )
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    db = SessionLocal()
+    try:
+        seed_predefined_categories(db)
+    finally:
+        db.close()
+    yield
+
+
 app = FastAPI(
+    lifespan=lifespan,
     docs_url="/docs" if settings.is_dev else None,
     redoc_url="/redoc" if settings.is_dev else None,
 )

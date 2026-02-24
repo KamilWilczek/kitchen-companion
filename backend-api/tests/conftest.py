@@ -9,6 +9,7 @@ from alembic import command
 from alembic.config import Config
 from app.actions import normalize_key
 from app.core.db import get_db
+from app.core.predefined_categories import seed_predefined_categories
 from app.models.category import Category  # noqa: F401 — ensures table is known to metadata
 from app.models.recipe import Ingredient, Recipe
 from app.models.shopping_item import ShoppingItem, ShoppingList
@@ -37,6 +38,16 @@ def apply_migrations():
     alembic_cfg = Config("alembic.ini")
     alembic_cfg.set_main_option("sqlalchemy.url", TEST_DB_URL)
     command.upgrade(alembic_cfg, "head")
+
+    # Seed predefined categories into the test DB
+    from sqlalchemy.orm import sessionmaker
+    _Session = sessionmaker(bind=engine)
+    db = _Session()
+    try:
+        seed_predefined_categories(db)
+    finally:
+        db.close()
+
     yield  # no teardown: avoid WinError 32
 
 

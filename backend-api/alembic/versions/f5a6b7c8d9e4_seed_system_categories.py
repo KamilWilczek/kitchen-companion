@@ -30,6 +30,7 @@ SYSTEM_CATEGORIES = [
     ("konserwy i przetwory", "🥫"),
     ("medyczne", "💊"),
     ("mięso", "🥩"),
+    ("nabiał", "🥛"),
     ("mrożonki", "🧊"),
     ("oleje i tłuszcze", "🫒"),
     ("owoce i warzywa", "🍎"),

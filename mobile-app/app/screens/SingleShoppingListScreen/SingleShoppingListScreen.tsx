@@ -1,14 +1,14 @@
 import {
   View,
   Text,
-  FlatList,
+  SectionList,
   Pressable,
   TextInput,
   Alert,
   RefreshControl,
   Modal,
 } from 'react-native';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { NativeStackScreenProps, NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -22,6 +22,8 @@ import { s } from './SingleShoppingListScreen.styles';
 import { colors } from '@app/styles/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ShoppingList'>;
+type SortMode = 'alpha' | 'category';
+type Section = { title: string; icon: string | null; data: ShoppingItemOut[] };
 
 export default function SingleShoppingListScreen() {
   const route = useRoute<Props['route']>();
@@ -49,6 +51,42 @@ export default function SingleShoppingListScreen() {
     deps: [listId],
     initialData: [],
   });
+
+  const [sortMode, setSortMode] = useState<SortMode>('category');
+
+  const sections = useMemo<Section[]>(() => {
+    const sorted = [...items].sort((a, b) => a.name.localeCompare(b.name, 'pl'));
+
+    if (sortMode === 'alpha') {
+      return [{ title: '', icon: null, data: sorted }];
+    }
+
+    // Group by category
+    const map = new Map<string, { title: string; icon: string | null; data: ShoppingItemOut[] }>();
+    const uncategorized: ShoppingItemOut[] = [];
+
+    for (const item of sorted) {
+      if (!item.category) {
+        uncategorized.push(item);
+      } else {
+        const key = item.category.id;
+        if (!map.has(key)) {
+          map.set(key, { title: item.category.name, icon: item.category.icon, data: [] });
+        }
+        map.get(key)!.data.push(item);
+      }
+    }
+
+    const result: Section[] = [...map.values()].sort((a, b) =>
+      a.title.localeCompare(b.title, 'pl'),
+    );
+
+    if (uncategorized.length > 0) {
+      result.push({ title: 'Bez kategorii', icon: null, data: uncategorized });
+    }
+
+    return result;
+  }, [items, sortMode]);
 
   const [name, setName] = useState('');
   const [qty, setQty] = useState('1');
@@ -78,7 +116,7 @@ export default function SingleShoppingListScreen() {
     setItems(await getShoppingListItems(listId));
   };
 
-  const editItem = async (id: string, by: number, current: number) => {
+  const nudgeQty = async (id: string, by: number, current: number) => {
     const next = Math.max(0, current + by);
     await patchShoppingItem(listId, id, { quantity: next });
     setItems(await getShoppingListItems(listId));
@@ -116,13 +154,10 @@ export default function SingleShoppingListScreen() {
 
   const saveEdit = async () => {
     if (!editingItem) return;
-
     const n = editName.trim();
     const q = Number(editQty);
     const u = editUnit.trim();
-
-    if (!n) return;
-    if (!Number.isFinite(q) || q <= 0) return;
+    if (!n || !Number.isFinite(q) || q <= 0) return;
 
     await patchShoppingItem(listId, editingItem.id, {
       name: n,
@@ -147,7 +182,6 @@ export default function SingleShoppingListScreen() {
 
   const confirmRemoveRecipe = () => {
     if (!editingItem?.recipe_id || !editingItem?.recipe_title) return;
-
     Alert.alert(
       'Remove recipe items?',
       `Remove all items from "${editingItem.recipe_title}"?`,
@@ -187,10 +221,7 @@ export default function SingleShoppingListScreen() {
             przepis: {item.recipe_title}
           </Text>
         )}
-        <Pressable
-          style={s.categoryChip}
-          onPress={() => openCategoryPicker(item)}
-        >
+        <Pressable style={s.categoryChip} onPress={() => openCategoryPicker(item)}>
           <Text style={[s.categoryChipText, !item.category_id && s.categoryChipPlaceholder]}>
             {item.category
               ? `${item.category.icon ?? '📦'} ${item.category.name}`
@@ -200,16 +231,10 @@ export default function SingleShoppingListScreen() {
       </View>
 
       <View style={s.qBtns}>
-        <Pressable
-          onPress={() => editItem(item.id, -1, item.quantity)}
-          style={s.smallBtn}
-        >
+        <Pressable onPress={() => nudgeQty(item.id, -1, item.quantity)} style={s.smallBtn}>
           <Text>-</Text>
         </Pressable>
-        <Pressable
-          onPress={() => editItem(item.id, +1, item.quantity)}
-          style={s.smallBtn}
-        >
+        <Pressable onPress={() => nudgeQty(item.id, +1, item.quantity)} style={s.smallBtn}>
           <Text>+</Text>
         </Pressable>
       </View>
@@ -236,30 +261,49 @@ export default function SingleShoppingListScreen() {
           keyboardType="numeric"
           style={[s.input, { width: 80 }]}
         />
-        <UnitSelect
-          value={unit}
-          onChange={setUnit}
-          containerStyle={{ flex: 1 }}
-        />
+        <UnitSelect value={unit} onChange={setUnit} containerStyle={{ flex: 1 }} />
         <Pressable onPress={addItem} style={s.addBtn}>
           <Text style={{ color: colors.white }}>Add</Text>
         </Pressable>
       </View>
 
-      <FlatList
-        data={items}
-        keyExtractor={(i) => i.id}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      <View style={s.sortToggle}>
+        <Pressable
+          style={[s.sortBtn, sortMode === 'category' && s.sortBtnActive]}
+          onPress={() => setSortMode('category')}
+        >
+          <Text style={[s.sortBtnText, sortMode === 'category' && s.sortBtnTextActive]}>
+            Kategoria
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[s.sortBtn, sortMode === 'alpha' && s.sortBtnActive]}
+          onPress={() => setSortMode('alpha')}
+        >
+          <Text style={[s.sortBtnText, sortMode === 'alpha' && s.sortBtnTextActive]}>A–Z</Text>
+        </Pressable>
+      </View>
+
+      <SectionList
+        sections={sections}
+        keyExtractor={(item) => item.id}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        renderSectionHeader={({ section }) =>
+          section.title ? (
+            <View style={s.sectionHeader}>
+              <Text style={s.sectionHeaderText}>
+                {section.icon ? `${section.icon}  ${section.title}` : section.title}
+              </Text>
+            </View>
+          ) : null
         }
         renderItem={({ item }) => <Row item={item} />}
         ListEmptyComponent={
           !loading ? (
-            <Text style={{ padding: 12, color: colors.muted }}>
-              Your list is empty.
-            </Text>
+            <Text style={{ padding: 12, color: colors.muted }}>Your list is empty.</Text>
           ) : null
         }
+        stickySectionHeadersEnabled={false}
       />
 
       <View style={[s.footer, { marginBottom: Math.max(8, insets.bottom) }]}>
@@ -342,16 +386,10 @@ export default function SingleShoppingListScreen() {
             )}
 
             <View style={s.modalActions}>
-              <Pressable
-                onPress={closeEditModal}
-                style={[s.footerBtn, s.ghost]}
-              >
+              <Pressable onPress={closeEditModal} style={[s.footerBtn, s.ghost]}>
                 <Text>Cancel</Text>
               </Pressable>
-              <Pressable
-                onPress={saveEdit}
-                style={[s.footerBtn, s.addBtn]}
-              >
+              <Pressable onPress={saveEdit} style={[s.footerBtn, s.addBtn]}>
                 <Text style={{ color: colors.white }}>Save</Text>
               </Pressable>
             </View>
@@ -361,4 +399,3 @@ export default function SingleShoppingListScreen() {
     </View>
   );
 }
-

@@ -76,6 +76,40 @@ export const s = StyleSheet.create({
   modalCard: { backgroundColor: colors.white, borderRadius: 12, padding: 16, gap: 10 },
   modalTitle: { fontSize: 18, fontWeight: '600', marginBottom: 4 },
   modalActions: { flexDirection: 'row', gap: 10, marginTop: 8 },
+  sortToggle: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 10,
+  },
+  sortBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    backgroundColor: colors.ghostBg,
+  },
+  sortBtnActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  sortBtnText: { fontSize: 13, color: colors.muted },
+  sortBtnTextActive: { color: colors.white, fontWeight: '600' },
+
+  sectionHeader: {
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+    marginTop: 4,
+    marginBottom: 2,
+  },
+  sectionHeaderText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+
   removeRecipeBtn: {
     backgroundColor: colors.dangerLight,
     paddingVertical: 12,

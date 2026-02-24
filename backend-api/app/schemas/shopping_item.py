@@ -21,12 +21,14 @@ class ShoppingItemIn(BaseModel):
     quantity: float = Field(ge=0, le=999999)
     unit: Unit | None = None
     recipe_id: UUID | None = None
+    category_id: UUID | None = None
 
 
 class ShoppingItemOut(ShoppingItemIn):
     id: UUID
     checked: bool = False
     recipe_title: str | None = None
+    category: "CategoryOut | None" = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -37,6 +39,7 @@ class ShoppingItemUpdate(BaseModel):
     quantity: float | None = Field(default=None, ge=0, le=999999)
     checked: bool | None = None
     recipe_id: UUID | None = None
+    category_id: UUID | None = None
 
 
 class ShoppingListBase(BaseModel):
@@ -87,3 +90,8 @@ class ShoppingListUpdate(ShoppingListBase):
         if v is not None and v.strip() == "":
             raise ValueError("Name cannot be empty")
         return v
+
+
+from app.schemas.category import CategoryOut  # noqa: E402 — resolves forward ref
+
+ShoppingItemOut.model_rebuild()

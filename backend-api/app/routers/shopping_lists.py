@@ -3,6 +3,7 @@ from uuid import UUID
 from app.actions import (
     create_or_merge_item,
     find_and_merge_existing,
+    resolve_category_id,
     user_can_edit_list,
 )
 from app.core.db import get_db
@@ -193,6 +194,9 @@ def add_item(
     shopping_list = db.get(ShoppingList, list_id)
     if not user_can_edit_list(current_user, shopping_list):
         raise HTTPException(status_code=404, detail="List not found")
+    item = item.model_copy(
+        update={"category_id": resolve_category_id(db, item.category_id, current_user.id)}
+    )
     return create_or_merge_item(db=db, shopping_list=shopping_list, data=item)
 
 
@@ -209,7 +213,7 @@ def get_shopping_list_items(
     items = db.scalars(
         select(ShoppingItem)
         .where(ShoppingItem.list_id == list_id)
-        .options(selectinload(ShoppingItem.recipe))
+        .options(selectinload(ShoppingItem.recipe), selectinload(ShoppingItem.category))
         .order_by(ShoppingItem.name)
     ).all()
 
@@ -220,8 +224,10 @@ def get_shopping_list_items(
             quantity=item.quantity,
             unit=item.unit,
             recipe_id=item.recipe_id,
+            category_id=item.category_id,
             checked=item.checked,
             recipe_title=item.recipe.title if item.recipe else None,
+            category=item.category,
         )
         for item in items
     ]
@@ -273,6 +279,9 @@ def update_item(
 
     if "recipe_id" in data:
         item.recipe_id = data["recipe_id"] if data["recipe_id"] else None
+
+    if "category_id" in data:
+        item.category_id = resolve_category_id(db, data["category_id"], current_user.id)
 
     if target_name == item.name and target_unit == item.unit:
         db.commit()

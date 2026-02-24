@@ -2,6 +2,7 @@ from logging.config import fileConfig
 
 from alembic import context
 from app.models.base import Base
+from app.models.category import Category  # noqa: F401
 from app.models.recipe import Recipe  # noqa: F401
 from app.models.shopping_item import ShoppingItem  # noqa: F401
 from app.models.tag import Tag  # noqa: F401

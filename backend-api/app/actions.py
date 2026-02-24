@@ -1,13 +1,32 @@
 import typing as t
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
+from app.models.category import Category
 from app.models.recipe import Recipe
 from app.models.shopping_item import ShoppingItem, ShoppingList
 from app.models.user import User
 from app.schemas.shopping_item import ShoppingItemIn
+
+
+def resolve_category_id(
+    db: Session, category_id: UUID | None, user_id: UUID
+) -> UUID | None:
+    """Return category_id if it's a system category or belongs to user, else raise 400."""
+    if category_id is None:
+        return None
+    cat = db.scalar(
+        select(Category).where(
+            Category.id == category_id,
+            or_(Category.user_id == user_id, Category.user_id.is_(None)),
+        )
+    )
+    if cat is None:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Invalid category")
+    return category_id
 
 
 def normalize_key(name: str, unit: str | None) -> tuple[str, str]:
@@ -42,6 +61,8 @@ def create_or_merge_item(
     if existing:
         existing.quantity += data.quantity
         existing.checked = False
+        if existing.category_id is None and data.category_id is not None:
+            existing.category_id = data.category_id
         db.commit()
         db.refresh(existing)
         return existing
@@ -56,6 +77,7 @@ def create_or_merge_item(
         checked=False,
         name_norm=name_norm,
         unit_norm=unit_norm,
+        category_id=data.category_id,
     )
     db.add(new_item)
     db.commit()

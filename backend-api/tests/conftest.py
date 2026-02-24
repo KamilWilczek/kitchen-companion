@@ -9,6 +9,7 @@ from alembic import command
 from alembic.config import Config
 from app.actions import normalize_key
 from app.core.db import get_db
+from app.models.category import Category  # noqa: F401 — ensures table is known to metadata
 from app.models.recipe import Ingredient, Recipe
 from app.models.shopping_item import ShoppingItem, ShoppingList
 from app.models.tag import Tag

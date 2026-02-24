@@ -4,6 +4,7 @@ from app.actions import (
     create_or_merge_item,
     list_participants,
     recipe_participants,
+    resolve_category_id,
     user_can_edit_list,
     user_can_edit_recipe,
 )
@@ -61,7 +62,12 @@ def add_recipe(
     )
 
     recipe.ingredients = [
-        Ingredient(name=ing.name, quantity=ing.quantity, unit=ing.unit)
+        Ingredient(
+            name=ing.name,
+            quantity=ing.quantity,
+            unit=ing.unit,
+            category_id=resolve_category_id(db, ing.category_id, current_user.id),
+        )
         for ing in recipe_in.ingredients
     ]
 
@@ -93,16 +99,20 @@ def update_recipe(
 
     recipe.ingredients.clear()
     recipe.ingredients.extend(
-        Ingredient(name=ing.name, quantity=ing.quantity, unit=ing.unit)
+        Ingredient(
+            name=ing.name,
+            quantity=ing.quantity,
+            unit=ing.unit,
+            category_id=resolve_category_id(db, ing.category_id, current_user.id),
+        )
         for ing in recipe_in.ingredients
     )
 
-    if recipe_in.tag_ids:
-        recipe.tags = db.scalars(
-            select(Tag).where(Tag.id.in_(recipe_in.tag_ids), Tag.user_id == current_user.id)
-        ).all()
-    else:
-        recipe.tags = []
+    foreign_tags = [t for t in recipe.tags if t.user_id != current_user.id]
+    my_tags = db.scalars(
+        select(Tag).where(Tag.id.in_(recipe_in.tag_ids), Tag.user_id == current_user.id)
+    ).all() if recipe_in.tag_ids else []
+    recipe.tags = foreign_tags + list(my_tags)
 
     db.commit()
     db.refresh(recipe, ["shared_with_users"])
@@ -130,17 +140,21 @@ def patch_recipe(
     if patch.ingredients is not None:
         recipe.ingredients.clear()
         recipe.ingredients.extend(
-            Ingredient(name=ing.name, quantity=ing.quantity, unit=ing.unit)
+            Ingredient(
+                name=ing.name,
+                quantity=ing.quantity,
+                unit=ing.unit,
+                category_id=resolve_category_id(db, ing.category_id, current_user.id),
+            )
             for ing in patch.ingredients
         )
 
     if patch.tag_ids is not None:
-        if patch.tag_ids:
-            recipe.tags = db.scalars(
-                select(Tag).where(Tag.id.in_(patch.tag_ids), Tag.user_id == current_user.id)
-            ).all()
-        else:
-            recipe.tags = []
+        foreign_tags = [t for t in recipe.tags if t.user_id != current_user.id]
+        my_tags = db.scalars(
+            select(Tag).where(Tag.id.in_(patch.tag_ids), Tag.user_id == current_user.id)
+        ).all() if patch.tag_ids else []
+        recipe.tags = foreign_tags + list(my_tags)
 
     db.commit()
     db.refresh(recipe, ["shared_with_users"])
@@ -262,6 +276,7 @@ def add_from_recipe(
                 quantity=ing.quantity,
                 unit=ing.unit,
                 recipe_id=recipe_id,
+                category_id=ing.category_id,
             ),
         )
         added.append(added_item)
@@ -333,6 +348,7 @@ def add_selected_ingredients_to_shopping_list(
                 quantity=ing.quantity,
                 unit=ing.unit,
                 recipe_id=recipe_id,
+                category_id=ing.category_id,
             ),
         )
         added.append(added_item)

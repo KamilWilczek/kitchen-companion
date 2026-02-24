@@ -51,11 +51,19 @@ class ShoppingItem(Base):
         index=True,
     )
 
+    category_id: Mapped[UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("categories.id", ondelete="SET NULL"),
+        nullable=True,
+        default=None,
+    )
+
     name_norm: Mapped[str]
     unit_norm: Mapped[str]
 
     shopping_list = relationship("ShoppingList", back_populates="items")
     recipe = relationship("Recipe", back_populates="shopping_items")
+    category = relationship("Category", back_populates="shopping_items")
 
     __table_args__ = (
         UniqueConstraint(

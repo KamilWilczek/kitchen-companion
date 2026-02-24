@@ -697,3 +697,67 @@ def test_add_selected_ingredients_from_recipe_to_shopping_list(
     )
     assert len(db_items) == 2
     assert {i.name for i in db_items} == {"Tomato pulp", "Oregano"}
+
+
+def test_put_preserves_other_users_tags(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    db_session: Session,
+    recipe_factory: t.Callable[..., Recipe],
+    tag_factory: t.Callable[..., list[Tag]],
+    user_factory: t.Callable[..., User],
+) -> None:
+    """PUT by UserB must not remove tags that UserA assigned to the recipe."""
+    current_user = db_session.query(User).filter_by(email="test@example.com").one()
+    owner = user_factory()
+
+    (owner_tag,) = tag_factory("veggie", user_id=owner.id)
+    (my_tag,) = tag_factory("quick")
+
+    recipe = recipe_factory(user=owner, tags=[owner_tag])
+    recipe.shared_with_users.append(current_user)
+    db_session.commit()
+
+    payload = {
+        "title": recipe.title,
+        "description": recipe.description,
+        "source": recipe.source,
+        "ingredients": [],
+        "tag_ids": [str(my_tag.id)],
+    }
+
+    res = client.put(f"/recipes/{recipe.id}", json=payload, headers=auth_headers)
+
+    assert res.status_code == 200
+    tag_names = {t["name"] for t in res.json()["tags"]}
+    assert "veggie" in tag_names
+    assert "quick" in tag_names
+
+
+def test_patch_preserves_other_users_tags(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    db_session: Session,
+    recipe_factory: t.Callable[..., Recipe],
+    tag_factory: t.Callable[..., list[Tag]],
+    user_factory: t.Callable[..., User],
+) -> None:
+    """PATCH clearing tag_ids must only clear the editing user's own tags."""
+    current_user = db_session.query(User).filter_by(email="test@example.com").one()
+    owner = user_factory()
+
+    (owner_tag,) = tag_factory("veggie", user_id=owner.id)
+
+    recipe = recipe_factory(user=owner, tags=[owner_tag])
+    recipe.shared_with_users.append(current_user)
+    db_session.commit()
+
+    res = client.patch(
+        f"/recipes/{recipe.id}",
+        json={"tag_ids": []},
+        headers=auth_headers,
+    )
+
+    assert res.status_code == 200
+    tag_names = {t["name"] for t in res.json()["tags"]}
+    assert "veggie" in tag_names

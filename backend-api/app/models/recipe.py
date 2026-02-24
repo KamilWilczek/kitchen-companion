@@ -42,8 +42,15 @@ class Ingredient(Base):
     name: Mapped[str]
     quantity: Mapped[float]
     unit: Mapped[str]
+    category_id: Mapped[UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("categories.id", ondelete="SET NULL"),
+        nullable=True,
+        default=None,
+    )
 
     recipe = relationship("Recipe", back_populates="ingredients")
+    category = relationship("Category", back_populates="ingredients")
 
 
 class Recipe(Base):

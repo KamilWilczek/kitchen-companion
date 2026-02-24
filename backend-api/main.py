@@ -1,5 +1,5 @@
 from app.core.config import settings
-from app.routers import account, auth, recipe, shopping_lists, tags
+from app.routers import account, auth, categories, recipe, shopping_lists, tags
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -33,6 +33,7 @@ def ping():
 
 
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
+app.include_router(categories.router, prefix="/categories", tags=["categories"])
 app.include_router(recipe.router, prefix="/recipes", tags=["recipes"])
 app.include_router(shopping_lists.router, prefix="/shopping-lists", tags=["shopping"])
 app.include_router(tags.router, prefix="/tags", tags=["tags"])

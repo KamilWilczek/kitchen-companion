@@ -35,11 +35,12 @@ export function AutocompleteInput({
 
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [inputHeight, setInputHeight] = useState(38);
+  const [isFocused, setIsFocused] = useState(false);
 
   const debouncedValue = useDebounce(value, debounceMs);
 
   useEffect(() => {
-    if (editable === false) {
+    if (editable === false || !isFocused) {
       setSuggestions([]);
       return;
     }
@@ -51,7 +52,7 @@ export function AutocompleteInput({
     } else {
       setSuggestions([]);
     }
-  }, [debouncedValue, editable, maxSuggestions]);
+  }, [debouncedValue, editable, isFocused, maxSuggestions]);
 
   const handleSelect = useCallback(
     (suggestion: string) => {
@@ -62,6 +63,7 @@ export function AutocompleteInput({
   );
 
   const handleBlur = useCallback(() => {
+    setIsFocused(false);
     setTimeout(() => setSuggestions([]), 150);
   }, []);
 
@@ -70,6 +72,7 @@ export function AutocompleteInput({
       <TextInput
         value={value}
         onChangeText={onChangeText}
+        onFocus={() => setIsFocused(true)}
         onBlur={handleBlur}
         onLayout={(e) => setInputHeight(e.nativeEvent.layout.height)}
         editable={editable}

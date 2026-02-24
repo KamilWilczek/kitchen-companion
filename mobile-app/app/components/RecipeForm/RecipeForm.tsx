@@ -7,8 +7,11 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTagsApi } from 'api/tags';
-import type { IngredientIn, RecipeIn, TagOut, IngredientOut, RecipeOut } from 'types/types';
+import type { IngredientIn, RecipeIn, TagOut, IngredientOut, RecipeOut, CategoryOut } from 'types/types';
+import type { RootStackParamList } from 'App';
 import UnitSelect from '@app/components/UnitSelect/UnitSelect';
 import { s } from './RecipeForm.styles';
 import { colors } from '@app/styles/colors';
@@ -40,6 +43,7 @@ export default function RecipeForm({
   mode = 'full',
   onIngredientsChange,
 }: Props) {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { listTags } = useTagsApi();
 
   const [title, setTitle] = useState(initial?.title ?? '');
@@ -136,6 +140,7 @@ export default function RecipeForm({
           name: i.name.trim(),
           quantity: Number.isFinite(i.quantity) ? i.quantity : 0,
           unit: i.unit.trim(),
+          category_id: i.category_id ?? null,
         })),
         tag_ids: selectedTagIds,
       };
@@ -187,53 +192,73 @@ export default function RecipeForm({
         {ingredients.map((item, index) => (
           <View
             key={item.id || `row-${index}`}
-            style={[s.row, { zIndex: ingredients.length - index }]}
+            style={{ zIndex: ingredients.length - index, marginBottom: 8 }}
           >
-            {selectIngredients && item.id ? (
+            <View style={s.row}>
+              {selectIngredients && item.id ? (
+                <Pressable
+                  onPress={() => selectIngredients.onToggle(item.id!)}
+                  style={[
+                    s.checkbox,
+                    selectIngredients.selectedIds.has(item.id) && s.checkboxOn,
+                  ]}
+                >
+                  <Text style={s.checkboxText}>
+                    {selectIngredients.selectedIds.has(item.id) ? '✓' : ''}
+                  </Text>
+                </Pressable>
+              ) : null}
+
+              <TextInput
+                style={[s.input, s.flex2, ingredientsReadOnly && s.readOnly]}
+                placeholder="name"
+                value={item.name}
+                editable={!ingredientsReadOnly}
+                onChangeText={(t) => updateIngredient(index, { name: t })}
+              />
+
+              <TextInput
+                style={[s.input, s.flex1, ingredientsReadOnly && s.readOnly]}
+                placeholder="qty"
+                keyboardType="numeric"
+                value={String(item.quantity ?? 0)}
+                editable={!ingredientsReadOnly}
+                onChangeText={(t) =>
+                  updateIngredient(index, { quantity: Number(t) || 0 })
+                }
+              />
+
+              <UnitSelect
+                value={item.unit}
+                onChange={(t) => updateIngredient(index, { unit: t })}
+                containerStyle={{ flex: 1 }}
+              />
+
               <Pressable
-                onPress={() => selectIngredients.onToggle(item.id!)}
-                style={[
-                  s.checkbox,
-                  selectIngredients.selectedIds.has(item.id) && s.checkboxOn,
-                ]}
+                onPress={() => removeRow(index)}
+                disabled={ingredientsReadOnly}
+                style={[s.iconBtn, ingredientsReadOnly && s.disabled]}
               >
-                <Text style={s.checkboxText}>
-                  {selectIngredients.selectedIds.has(item.id) ? '✓' : ''}
-                </Text>
+                <Text style={s.icon}>✕</Text>
               </Pressable>
-            ) : null}
-
-            <TextInput
-              style={[s.input, s.flex2, ingredientsReadOnly && s.readOnly]}
-              placeholder="name"
-              value={item.name}
-              editable={!ingredientsReadOnly}
-              onChangeText={(t) => updateIngredient(index, { name: t })}
-            />
-
-            <TextInput
-              style={[s.input, s.flex1, ingredientsReadOnly && s.readOnly]}
-              placeholder="qty"
-              keyboardType="numeric"
-              value={String(item.quantity ?? 0)}
-              editable={!ingredientsReadOnly}
-              onChangeText={(t) =>
-                updateIngredient(index, { quantity: Number(t) || 0 })
-              }
-            />
-
-            <UnitSelect
-              value={item.unit}
-              onChange={(t) => updateIngredient(index, { unit: t })}
-              containerStyle={{ flex: 1 }}
-            />
+            </View>
 
             <Pressable
-              onPress={() => removeRow(index)}
+              style={[s.categoryChip, ingredientsReadOnly && s.disabled]}
               disabled={ingredientsReadOnly}
-              style={[s.iconBtn, ingredientsReadOnly && s.disabled]}
+              onPress={() =>
+                navigation.navigate('CategoryPicker', {
+                  selectedId: item.category_id ?? undefined,
+                  onSelect: (cat: CategoryOut) =>
+                    updateIngredient(index, { category_id: cat.id, category: cat }),
+                })
+              }
             >
-              <Text style={s.icon}>✕</Text>
+              <Text style={[s.categoryChipText, !item.category_id && s.categoryChipPlaceholder]}>
+                {item.category
+                  ? `${item.category.icon ?? '📦'} ${item.category.name}`
+                  : '+ kategoria'}
+              </Text>
             </Pressable>
           </View>
         ))}

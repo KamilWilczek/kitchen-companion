@@ -13,9 +13,11 @@ import SingleShoppingListScreen from '@app/screens/SingleShoppingListScreen/Sing
 import AuthScreen from '@app/screens/AuthScreen/AuthScreen';
 import MealPlannerScreen from '@app/screens/MealPlannerScreen/MealPlannerScreen';
 import AccountScreen from '@app/screens/AccountScreen/AccountScreen';
+import CategoryPickerScreen from '@app/screens/CategoryPickerScreen/CategoryPickerScreen';
 import { useAuth, AuthProvider } from 'auth/AuthProvider';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { colors } from '@app/styles/colors';
+import type { CategoryOut } from 'types/types';
 
 export type RootStackParamList = {
   Auth: undefined;
@@ -28,6 +30,7 @@ export type RootStackParamList = {
   ShoppingLists: undefined;
   ShoppingList: { listId: string, listName: string};
   MealPlanner: undefined;
+  CategoryPicker: { onSelect: (category: CategoryOut) => void; selectedId?: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -208,6 +211,11 @@ function RootNavigator() {
             name="Account"
             component={AccountScreen}
             options={{ title: 'Account' }}
+          />
+          <Stack.Screen
+            name="CategoryPicker"
+            component={CategoryPickerScreen}
+            options={{ title: 'Wybierz kategorię' }}
           />
         </>
       )}

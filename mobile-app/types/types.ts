@@ -1,16 +1,31 @@
 export type UUID = string;
 
+export interface CategoryOut {
+  id: UUID;
+  name: string;
+  icon: string | null;
+  is_system: boolean;
+}
+
+export interface CategoryIn {
+  name: string;
+  icon: string | null;
+}
+
 export interface IngredientOut {
   id: UUID;
   name: string;
   quantity: number;
   unit: string;
+  category_id?: UUID | null;
+  category?: CategoryOut | null;
 }
 
 export interface IngredientIn {
   name: string;
   quantity: number;
   unit: string;
+  category_id?: UUID | null;
 }
 export interface TagOut {
   id: UUID;
@@ -57,10 +72,12 @@ export interface ShoppingItemIn {
   quantity: number;
   unit?: string | null;
   recipe_id?: string | null;
+  category_id?: UUID | null;
 }
 
 export interface ShoppingItemOut extends ShoppingItemIn {
   id: UUID;
   checked: boolean;
   recipe_title?: string | null;
+  category?: CategoryOut | null;
 }

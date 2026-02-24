@@ -84,4 +84,17 @@ export const s = StyleSheet.create({
     marginTop: 8,
   },
   removeRecipeBtnText: { color: colors.dangerDark, fontWeight: '600' },
+
+  categoryChip: {
+    alignSelf: 'flex-start',
+    marginTop: 4,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    backgroundColor: colors.ghostBg,
+  },
+  categoryChipText: { fontSize: 12, color: colors.primary },
+  categoryChipPlaceholder: { color: colors.muted },
 });

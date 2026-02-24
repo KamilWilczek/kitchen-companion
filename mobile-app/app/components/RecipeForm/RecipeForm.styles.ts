@@ -65,4 +65,17 @@ export const s = StyleSheet.create({
   },
   checkboxOn: { backgroundColor: colors.primary, borderColor: colors.primary },
   checkboxText: { color: colors.white, fontWeight: '900' },
+
+  categoryChip: {
+    alignSelf: 'flex-start',
+    marginTop: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    backgroundColor: colors.ghostBg,
+  },
+  categoryChipText: { fontSize: 13, color: colors.primary },
+  categoryChipPlaceholder: { color: colors.muted },
 });

@@ -10,10 +10,10 @@ import {
 } from 'react-native';
 import { useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRoute } from '@react-navigation/native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useRoute, useNavigation } from '@react-navigation/native';
+import type { NativeStackScreenProps, NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import type { ShoppingItemOut } from 'types/types';
+import type { ShoppingItemOut, CategoryOut } from 'types/types';
 import type { RootStackParamList } from 'App';
 import { useShoppingListApi } from 'api/shopping_lists';
 import UnitSelect from '@app/components/UnitSelect/UnitSelect';
@@ -25,6 +25,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ShoppingList'>;
 
 export default function SingleShoppingListScreen() {
   const route = useRoute<Props['route']>();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { listId } = route.params;
   const insets = useSafeAreaInsets();
 
@@ -58,6 +59,7 @@ export default function SingleShoppingListScreen() {
   const [editName, setEditName] = useState('');
   const [editQty, setEditQty] = useState('1');
   const [editUnit, setEditUnit] = useState('');
+  const [editCategory, setEditCategory] = useState<CategoryOut | null>(null);
 
   const addItem = async () => {
     const n = name.trim();
@@ -102,12 +104,14 @@ export default function SingleShoppingListScreen() {
     setEditName(item.name);
     setEditQty(String(item.quantity));
     setEditUnit(item.unit ?? '');
+    setEditCategory(item.category ?? null);
     setEditVisible(true);
   };
 
   const closeEditModal = () => {
     setEditVisible(false);
     setEditingItem(null);
+    setEditCategory(null);
   };
 
   const saveEdit = async () => {
@@ -124,10 +128,21 @@ export default function SingleShoppingListScreen() {
       name: n,
       quantity: q,
       unit: u,
+      category_id: editCategory?.id ?? null,
     });
 
     setItems(await getShoppingListItems(listId));
     closeEditModal();
+  };
+
+  const openCategoryPicker = (item: ShoppingItemOut) => {
+    navigation.navigate('CategoryPicker', {
+      selectedId: item.category_id ?? undefined,
+      onSelect: async (cat: CategoryOut) => {
+        await patchShoppingItem(listId, item.id, { category_id: cat.id });
+        setItems(await getShoppingListItems(listId));
+      },
+    });
   };
 
   const confirmRemoveRecipe = () => {
@@ -172,6 +187,16 @@ export default function SingleShoppingListScreen() {
             przepis: {item.recipe_title}
           </Text>
         )}
+        <Pressable
+          style={s.categoryChip}
+          onPress={() => openCategoryPicker(item)}
+        >
+          <Text style={[s.categoryChipText, !item.category_id && s.categoryChipPlaceholder]}>
+            {item.category
+              ? `${item.category.icon ?? '📦'} ${item.category.name}`
+              : '+ kategoria'}
+          </Text>
+        </Pressable>
       </View>
 
       <View style={s.qBtns}>
@@ -284,6 +309,29 @@ export default function SingleShoppingListScreen() {
               onChange={setEditUnit}
               containerStyle={{ marginTop: 4 }}
             />
+
+            <Pressable
+              style={s.categoryChip}
+              onPress={() => {
+                closeEditModal();
+                if (editingItem) {
+                  navigation.navigate('CategoryPicker', {
+                    selectedId: editCategory?.id ?? undefined,
+                    onSelect: async (cat: CategoryOut) => {
+                      setEditCategory(cat);
+                      await patchShoppingItem(listId, editingItem.id, { category_id: cat.id });
+                      setItems(await getShoppingListItems(listId));
+                    },
+                  });
+                }
+              }}
+            >
+              <Text style={[s.categoryChipText, !editCategory && s.categoryChipPlaceholder]}>
+                {editCategory
+                  ? `${editCategory.icon ?? '📦'} ${editCategory.name}`
+                  : '+ kategoria'}
+              </Text>
+            </Pressable>
 
             {editingItem?.recipe_title && (
               <Pressable onPress={confirmRemoveRecipe} style={s.removeRecipeBtn}>

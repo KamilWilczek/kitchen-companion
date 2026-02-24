@@ -20,7 +20,7 @@ def _get_user_by_id(db: Session, user_id: UUID) -> User | None:
 
 
 def _get_or_create_user_by_external_id(db: Session, external_id: str) -> User:
-    pass
+    raise NotImplementedError
 
 
 def get_current_user(

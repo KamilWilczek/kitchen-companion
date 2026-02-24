@@ -18,6 +18,7 @@ from app.schemas.shopping_item import (
     ShoppingListOut,
     ShoppingListShareIn,
     ShoppingListUpdate,
+    Unit,
 )
 from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy import or_, select
@@ -31,10 +32,10 @@ def create_shopping_list(
     payload: ShoppingListIn,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> ShoppingListOut:
+) -> ShoppingList:
     new_list = ShoppingList(
         user_id=current_user.id,
-        name=payload.name.strip(),
+        name=payload.name.strip() if payload.name is not None else None,
         description=payload.description,
     )
     db.add(new_list)
@@ -47,7 +48,7 @@ def create_shopping_list(
 def get_all_shopping_lists(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> list[ShoppingListOut]:
+) -> list[ShoppingList]:
     q = (
         select(ShoppingList)
         .outerjoin(
@@ -61,7 +62,7 @@ def get_all_shopping_lists(
         )
         .distinct()
     )
-    return db.scalars(q).all()
+    return list(db.scalars(q).all())
 
 
 @router.get("/{list_id}", response_model=ShoppingListOut)
@@ -69,7 +70,7 @@ def get_shopping_list(
     list_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> ShoppingListOut:
+) -> ShoppingList:
     shopping_list = db.get(ShoppingList, list_id)
     if not shopping_list or not user_can_edit_list(current_user, shopping_list):
         raise HTTPException(status_code=404, detail="List not found")
@@ -83,7 +84,7 @@ def update_shopping_list(
     payload: ShoppingListUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> ShoppingListOut:
+) -> ShoppingList:
     shopping_list = db.get(ShoppingList, list_id)
     if not shopping_list or not user_can_edit_list(current_user, shopping_list):
         raise HTTPException(status_code=404, detail="List not found")
@@ -190,9 +191,9 @@ def add_item(
     item: ShoppingItemIn,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> ShoppingItemOut:
+) -> ShoppingItem:
     shopping_list = db.get(ShoppingList, list_id)
-    if not user_can_edit_list(current_user, shopping_list):
+    if shopping_list is None or not user_can_edit_list(current_user, shopping_list):
         raise HTTPException(status_code=404, detail="List not found")
     item = item.model_copy(
         update={"category_id": resolve_category_id(db, item.category_id, current_user.id)}
@@ -222,7 +223,7 @@ def get_shopping_list_items(
             id=item.id,
             name=item.name,
             quantity=item.quantity,
-            unit=item.unit,
+            unit=Unit(item.unit) if item.unit else None,
             recipe_id=item.recipe_id,
             category_id=item.category_id,
             checked=item.checked,
@@ -240,7 +241,7 @@ def update_item(
     patch: ShoppingItemUpdate = Body(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> ShoppingItemOut:
+) -> ShoppingItem:
     shopping_list = db.get(ShoppingList, list_id)
     if not shopping_list or not user_can_edit_list(current_user, shopping_list):
         raise HTTPException(status_code=404, detail="List not found")

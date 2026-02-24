@@ -19,10 +19,12 @@ tags: List[TagOut] = []
 def list_tags(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> list[TagOut]:
-    return db.scalars(
-        select(Tag).where(Tag.user_id == current_user.id).order_by(Tag.name.asc())
-    ).all()
+) -> list[Tag]:
+    return list(
+        db.scalars(
+            select(Tag).where(Tag.user_id == current_user.id).order_by(Tag.name.asc())
+        ).all()
+    )
 
 
 @router.post("/", response_model=TagOut)
@@ -30,7 +32,7 @@ def create_tag(
     tag: TagIn,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> TagOut:
+) -> Tag:
     name = tag.name.strip().lower()
     if not name:
         raise HTTPException(status_code=400, detail="Tag name cannot be empty.")
@@ -54,7 +56,7 @@ def rename_tag(
     tag: TagIn,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> TagOut:
+) -> Tag:
     row = db.scalar(select(Tag).where(Tag.id == tag_id, Tag.user_id == current_user.id))
     if not row:
         raise HTTPException(status_code=404, detail="Tag not found")

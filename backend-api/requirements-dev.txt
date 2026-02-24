@@ -3,3 +3,5 @@ ruff
 black
 pytest
 mypy
+types-python-jose
+types-passlib

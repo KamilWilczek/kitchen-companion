@@ -11,7 +11,7 @@ from app.actions import (
 from app.core.db import get_db
 from app.core.deps import get_current_user
 from app.models.recipe import Ingredient, Recipe, recipe_shares
-from app.models.shopping_item import ShoppingList
+from app.models.shopping_item import ShoppingItem, ShoppingList
 from app.models.tag import Tag
 from app.models.user import User
 from app.schemas.recipe import (
@@ -21,7 +21,7 @@ from app.schemas.recipe import (
     RecipePatch,
     RecipeShareIn,
 )
-from app.schemas.shopping_item import ShoppingItemIn, ShoppingItemOut
+from app.schemas.shopping_item import ShoppingItemIn, ShoppingItemOut, Unit
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, selectinload
@@ -32,7 +32,7 @@ router = APIRouter()
 @router.get("/", response_model=list[RecipeOut])
 def get_recipes(
     db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
-) -> list[RecipeOut]:
+) -> list[Recipe]:
     q = (
         select(Recipe)
         .outerjoin(recipe_shares, recipe_shares.c.recipe_id == Recipe.id)
@@ -45,7 +45,7 @@ def get_recipes(
         .distinct()
         .options(selectinload(Recipe.shared_with_users))
     )
-    return db.scalars(q).all()
+    return list(db.scalars(q).all())
 
 
 @router.post("/", response_model=RecipeOut)
@@ -53,7 +53,7 @@ def add_recipe(
     recipe_in: RecipeIn,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> RecipeOut:
+) -> Recipe:
     recipe = Recipe(
         user_id=current_user.id,
         title=recipe_in.title,
@@ -88,7 +88,7 @@ def update_recipe(
     recipe_in: RecipeIn,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> RecipeOut:
+) -> Recipe:
     recipe = db.get(Recipe, recipe_id)
     if not recipe or not user_can_edit_recipe(current_user, recipe):
         raise HTTPException(status_code=404, detail="Recipe not found")
@@ -125,7 +125,7 @@ def patch_recipe(
     patch: RecipePatch,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> RecipeOut:
+) -> Recipe:
     recipe = db.get(Recipe, recipe_id)
     if not recipe or not user_can_edit_recipe(current_user, recipe):
         raise HTTPException(status_code=404, detail="Recipe not found")
@@ -143,7 +143,7 @@ def patch_recipe(
             Ingredient(
                 name=ing.name,
                 quantity=ing.quantity,
-                unit=ing.unit,
+                unit=Unit(ing.unit) if ing.unit else None,
                 category_id=resolve_category_id(db, ing.category_id, current_user.id),
             )
             for ing in patch.ingredients
@@ -244,7 +244,7 @@ def add_from_recipe(
     recipe_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> list[ShoppingItemOut]:
+) -> list[ShoppingItem]:
     shopping_list = db.get(ShoppingList, list_id)
     if not shopping_list or not user_can_edit_list(current_user, shopping_list):
         raise HTTPException(status_code=404, detail="List not found")
@@ -266,7 +266,7 @@ def add_from_recipe(
             ),
         )
 
-    added: list[ShoppingItemOut] = []
+    added: list[ShoppingItem] = []
     for ing in recipe.ingredients:
         added_item = create_or_merge_item(
             db=db,
@@ -274,7 +274,7 @@ def add_from_recipe(
             data=ShoppingItemIn(
                 name=ing.name,
                 quantity=ing.quantity,
-                unit=ing.unit,
+                unit=Unit(ing.unit) if ing.unit else None,
                 recipe_id=recipe_id,
                 category_id=ing.category_id,
             ),
@@ -293,7 +293,7 @@ def add_selected_ingredients_to_shopping_list(
     payload: IngredientsToShoppingList,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> list[ShoppingItemOut]:
+) -> list[ShoppingItem]:
     # 1. Load recipe & check access
     recipe = db.get(Recipe, recipe_id)
     if not recipe or not user_can_edit_recipe(current_user, recipe):
@@ -338,7 +338,7 @@ def add_selected_ingredients_to_shopping_list(
         )
 
     # 5. Add each ingredient as a ShoppingItem row (per-source model)
-    added: list[ShoppingItemOut] = []
+    added: list[ShoppingItem] = []
     for ing in ingredients:
         added_item = create_or_merge_item(
             db=db,
@@ -346,7 +346,7 @@ def add_selected_ingredients_to_shopping_list(
             data=ShoppingItemIn(
                 name=ing.name,
                 quantity=ing.quantity,
-                unit=ing.unit,
+                unit=Unit(ing.unit) if ing.unit else None,
                 recipe_id=recipe_id,
                 category_id=ing.category_id,
             ),

@@ -61,7 +61,7 @@ def login(
 ):
     user = db.scalar(select(User).where(User.email == credentials.email))
     if not user or not verify_password(credentials.password, user.password_hash):
-        logger.warning("Failed login attempt for email=%s ip=%s", credentials.email, request.client.host)
+        logger.warning("Failed login attempt for email=%s ip=%s", credentials.email, request.client.host if request.client else "unknown")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -92,12 +92,12 @@ def refresh(
         if sub is None:
             raise credentials_exception
     except Exception:
-        logger.warning("Invalid refresh token ip=%s", request.client.host)
+        logger.warning("Invalid refresh token ip=%s", request.client.host if request.client else "unknown")
         raise credentials_exception
 
     user = db.get(User, UUID(sub))
     if user is None:
-        logger.warning("Refresh token for deleted user=%s ip=%s", sub, request.client.host)
+        logger.warning("Refresh token for deleted user=%s ip=%s", sub, request.client.host if request.client else "unknown")
         raise credentials_exception
 
     logger.info("Token refreshed user=%s", user.id)

@@ -10,7 +10,9 @@ from app.models.user import User
 
 
 def _system_category(db: Session) -> Category:
-    return db.query(Category).filter(Category.user_id.is_(None)).first()
+    category = db.query(Category).filter(Category.user_id.is_(None)).first()
+    assert category is not None
+    return category
 
 
 def _category_factory(db: Session, user: User, name: str = "my_cat", icon: str | None = "🍎") -> Category:

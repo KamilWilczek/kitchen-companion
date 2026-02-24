@@ -206,7 +206,7 @@ def test_update_recipe_not_found_returns_404(
 ) -> None:
     unknown_id = str(uuid4())
 
-    payload = {
+    payload: dict[str, object] = {
         "title": "Doesn't matter",
         "description": "",
         "source": None,
@@ -280,7 +280,7 @@ def test_add_recipe_rejects_unknown_field_tags(
     client: TestClient,
     auth_headers: dict[str, str],
 ) -> None:
-    payload = {
+    payload: dict[str, object] = {
         "title": "Bad recipe",
         "description": "Should fail",
         "source": None,

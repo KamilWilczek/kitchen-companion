@@ -132,7 +132,7 @@ def tag_factory(
         t1, t2 = tag_factory("fruit", "veg", user_id=some_other_user_id)
     """
 
-    def _factory(*names: str, user_id: str | None = None) -> list[Tag]:
+    def _factory(*names: str, user_id: UUID | None = None) -> list[Tag]:
         # If no user_id supplied, use the default test user created in auth_headers
         if user_id is None:
             # Must match the email used in auth_headers

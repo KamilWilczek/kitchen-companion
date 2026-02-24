@@ -16,13 +16,14 @@ router = APIRouter()
 def get_categories(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> list[CategoryOut]:
-    categories = db.scalars(
-        select(Category)
-        .where(or_(Category.user_id == current_user.id, Category.user_id.is_(None)))
-        .order_by(Category.user_id.is_(None).desc(), Category.name)
-    ).all()
-    return categories
+) -> list[Category]:
+    return list(
+        db.scalars(
+            select(Category)
+            .where(or_(Category.user_id == current_user.id, Category.user_id.is_(None)))
+            .order_by(Category.user_id.is_(None).desc(), Category.name)
+        ).all()
+    )
 
 
 @router.post("/", response_model=CategoryOut, status_code=status.HTTP_201_CREATED)
@@ -30,7 +31,7 @@ def create_category(
     payload: CategoryIn,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> CategoryOut:
+) -> Category:
     existing = db.scalar(
         select(Category).where(
             Category.user_id == current_user.id,
@@ -57,7 +58,7 @@ def update_category(
     payload: CategoryIn,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> CategoryOut:
+) -> Category:
     category = db.get(Category, category_id)
     if not category or category.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Category not found")

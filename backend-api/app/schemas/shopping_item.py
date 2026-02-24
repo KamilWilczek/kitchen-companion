@@ -86,8 +86,8 @@ class ShoppingListUpdate(ShoppingListBase):
 
     @field_validator("name")
     @classmethod
-    def name_cannot_be_blank(cls, v: str | None) -> str | None:
-        if v is not None and v.strip() == "":
+    def name_cannot_be_blank(cls, v: str) -> str:
+        if v.strip() == "":
             raise ValueError("Name cannot be empty")
         return v
 

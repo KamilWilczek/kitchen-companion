@@ -82,7 +82,7 @@ export default function RecipeForm({
     return () => {
       mounted = false;
     };
-  }, [isFull, listTags]);
+  }, [isFull]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     onIngredientsChange?.(ingredients);
@@ -137,7 +137,6 @@ export default function RecipeForm({
         description: description.trim(),
         source: source.trim() || undefined,
         ingredients: ingredients.map((i) => ({
-          id: i.id,
           name: i.name.trim(),
           quantity: Number.isFinite(i.quantity) ? i.quantity : 0,
           unit: i.unit.trim(),

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable, FlatList, Alert, ActivityIndicator } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { TagOut } from 'types/types';
 import { useTagsApi } from 'api/tags';
 import { useLoadableData } from 'hooks/useLoadableData';
@@ -7,6 +8,7 @@ import { s } from './TagsScreen.styles';
 
 
 export default function TagsScreen() {
+  const insets = useSafeAreaInsets();
   const { listTags, createTag, renameTag, deleteTag } = useTagsApi();
 
   const {
@@ -93,6 +95,7 @@ export default function TagsScreen() {
               )}
             </View>
           )}
+          contentContainerStyle={{ paddingBottom: Math.max(16, insets.bottom) }}
           ListEmptyComponent={<Text style={{ color: '#6b7280' }}>No tags yet. Add one above.</Text>}
         />
       )}

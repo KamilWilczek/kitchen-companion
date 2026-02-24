@@ -6,6 +6,19 @@ type TokenResponse = {
   token_type: string;
 };
 
+async function extractErrorMessage(res: Response, fallback: string): Promise<string> {
+  try {
+    const data = await res.json();
+    if (typeof data.detail === 'string') return data.detail;
+    if (Array.isArray(data.detail)) {
+      return data.detail.map((e: { msg: string }) => e.msg).join(', ');
+    }
+  } catch {
+    // ignore parse error
+  }
+  return fallback;
+}
+
 export async function loginRequest(
   email: string,
   password: string,
@@ -17,8 +30,7 @@ export async function loginRequest(
   });
 
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || 'Login failed');
+    throw new Error(await extractErrorMessage(res, 'Login failed'));
   }
 
   return res.json();
@@ -35,8 +47,7 @@ export async function registerRequest(
   });
 
   if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(text || 'Registration failed');
+    throw new Error(await extractErrorMessage(res, 'Registration failed'));
   }
 }
 

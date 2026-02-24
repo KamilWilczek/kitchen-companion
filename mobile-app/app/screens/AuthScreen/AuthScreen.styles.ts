@@ -10,9 +10,15 @@ export const s = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    marginBottom: 24,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 16,
+    color: colors.muted,
+    textAlign: 'center',
+    marginBottom: 24,
+    marginTop: 4,
   },
   input: {
     borderWidth: 1,
@@ -29,9 +35,7 @@ export const s = StyleSheet.create({
     borderRadius: 8,
     marginTop: 8,
   },
-  secondary: {
-    backgroundColor: '#4B5563',
-  },
+
   buttonText: {
     color: colors.white,
     textAlign: 'center',
@@ -40,5 +44,13 @@ export const s = StyleSheet.create({
   error: {
     color: colors.dangerDark,
     marginBottom: 8,
+  },
+  switchLink: {
+    marginTop: 20,
+  },
+  switchLinkText: {
+    color: colors.link,
+    textAlign: 'center',
+    fontSize: 14,
   },
 });

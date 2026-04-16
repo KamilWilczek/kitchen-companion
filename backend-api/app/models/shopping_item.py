@@ -42,6 +42,7 @@ class ShoppingItem(Base):
     name: Mapped[str]
     unit: Mapped[str | None] = mapped_column(nullable=True, default=None)
     quantity: Mapped[float]
+    note: Mapped[str | None] = mapped_column(nullable=True, default=None)
     checked: Mapped[bool] = mapped_column(default=False)
     recipe_id: Mapped[UUID | None] = mapped_column(
         PG_UUID(as_uuid=True),

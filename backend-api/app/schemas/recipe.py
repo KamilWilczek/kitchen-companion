@@ -10,6 +10,7 @@ class Ingredient(BaseModel):
     name: str = Field(max_length=255)
     quantity: float = Field(default=0, ge=0, le=999999)
     unit: str = Field(default="", max_length=50)
+    note: str | None = Field(default=None, max_length=500)
     category_id: UUID | None = None
 
     model_config = ConfigDict(extra="forbid")

@@ -42,6 +42,7 @@ class Ingredient(Base):
     name: Mapped[str]
     quantity: Mapped[float]
     unit: Mapped[str]
+    note: Mapped[str | None] = mapped_column(nullable=True, default=None)
     category_id: Mapped[UUID | None] = mapped_column(
         PG_UUID(as_uuid=True),
         ForeignKey("categories.id", ondelete="SET NULL"),

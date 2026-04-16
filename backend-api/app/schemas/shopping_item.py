@@ -20,6 +20,7 @@ class ShoppingItemIn(BaseModel):
     name: str = Field(max_length=255)
     quantity: float = Field(ge=0, le=999999)
     unit: Unit | None = None
+    note: str | None = Field(default=None, max_length=500)
     recipe_id: UUID | None = None
     category_id: UUID | None = None
 
@@ -37,6 +38,7 @@ class ShoppingItemUpdate(BaseModel):
     name: str | None = Field(default=None, max_length=255)
     unit: Unit | None = None
     quantity: float | None = Field(default=None, ge=0, le=999999)
+    note: str | None = Field(default=None, max_length=500)
     checked: bool | None = None
     recipe_id: UUID | None = None
     category_id: UUID | None = None

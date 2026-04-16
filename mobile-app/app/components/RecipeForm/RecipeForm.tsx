@@ -12,8 +12,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTagsApi } from 'api/tags';
 import type { IngredientIn, RecipeIn, TagOut, IngredientOut, RecipeOut, CategoryOut } from 'types/types';
 import type { RootStackParamList } from 'App';
-import UnitSelect from '@app/components/UnitSelect/UnitSelect';
-import { AutocompleteInput } from '@app/components/AutocompleteInput/AutocompleteInput';
+import IngredientModal from '@app/components/IngredientModal/IngredientModal';
 import { s } from './RecipeForm.styles';
 import { colors } from '@app/styles/colors';
 
@@ -26,14 +25,15 @@ type IngredientSelection = {
 
 type Props = {
   initial?: Partial<RecipeFormInitial>;
-  submitLabel?: string; // optional now (ingredients-only doesn’t need it)
-  onSubmit?: (recipe: RecipeIn) => Promise<void> | void; // optional now
+  submitLabel?: string;
+  onSubmit?: (recipe: RecipeIn) => Promise<void> | void;
   selectIngredients?: IngredientSelection;
-
   ingredientsReadOnly?: boolean;
   mode?: 'full' | 'ingredients-only';
   onIngredientsChange?: (next: IngredientOut[]) => void;
 };
+
+const EMPTY_INGREDIENT: IngredientOut = { id: '', name: '', quantity: 0, unit: '' };
 
 export default function RecipeForm({
   initial,
@@ -54,7 +54,7 @@ export default function RecipeForm({
   const [ingredients, setIngredients] = useState<IngredientOut[]>(
     initial?.ingredients && initial.ingredients.length
       ? initial.ingredients
-      : [{ id: '', name: '', quantity: 0, unit: '' }],
+      : [],
   );
 
   const [allTags, setAllTags] = useState<TagOut[] | null>(null);
@@ -63,6 +63,11 @@ export default function RecipeForm({
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(initialTagIds);
 
   const [saving, setSaving] = useState(false);
+
+  // Modal state
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [draft, setDraft] = useState<IngredientOut>(EMPTY_INGREDIENT);
 
   const isFull = mode === 'full';
 
@@ -93,23 +98,42 @@ export default function RecipeForm({
     return ingredients.every((i) => i.name.trim());
   }, [ingredients, isFull, title]);
 
-  const updateIngredient = (i: number, patch: Partial<IngredientOut>) => {
-    if (ingredientsReadOnly) return;
-    setIngredients((prev) =>
-      prev.map((row, idx) => (idx === i ? { ...row, ...patch } : row)),
-    );
+  const openAdd = () => {
+    setDraft(EMPTY_INGREDIENT);
+    setEditingIndex(null);
+    setModalVisible(true);
   };
 
-  const addRow = () => {
-    if (ingredientsReadOnly) return;
-    setIngredients((prev) => [...prev, { id: '', name: '', quantity: 0, unit: '' }]);
+  const openEdit = (index: number) => {
+    setDraft(ingredients[index]);
+    setEditingIndex(index);
+    setModalVisible(true);
   };
 
-  const removeRow = (i: number) => {
-    if (ingredientsReadOnly) return;
-    setIngredients((prev) =>
-      prev.length > 1 ? prev.filter((_, idx) => idx !== i) : prev,
-    );
+  const handleModalSave = () => {
+    setIngredients((prev) => {
+      if (editingIndex === null) return [...prev, draft];
+      return prev.map((ing, i) => (i === editingIndex ? draft : ing));
+    });
+    setModalVisible(false);
+  };
+
+  const handleModalDelete = () => {
+    if (editingIndex !== null) {
+      setIngredients((prev) => prev.filter((_, i) => i !== editingIndex));
+    }
+    setModalVisible(false);
+  };
+
+  const handleCategoryPress = () => {
+    setModalVisible(false);
+    navigation.navigate('CategoryPicker', {
+      selectedId: draft.category_id ?? undefined,
+      onSelect: (cat: CategoryOut) => {
+        setDraft((prev) => ({ ...prev, category_id: cat.id, category: cat }));
+        setModalVisible(true);
+      },
+    });
   };
 
   const toggleTag = (id: string) =>
@@ -189,12 +213,26 @@ export default function RecipeForm({
       <View style={{ gap: 8 }}>
         <Text style={s.label}>Ingredients</Text>
 
-        {ingredients.map((item, index) => (
-          <View
-            key={item.id || `row-${index}`}
-            style={{ zIndex: ingredients.length - index, marginBottom: 8 }}
-          >
-            <View style={s.row}>
+        {ingredients.length === 0 && (
+          <Text style={s.emptyIngredients}>No ingredients yet.</Text>
+        )}
+
+        {ingredients.map((item, index) => {
+          const qtyUnit = [
+            item.quantity > 0 ? String(item.quantity) : null,
+            item.unit || null,
+          ].filter(Boolean).join(' ');
+          const categoryLabel = item.category
+            ? `${item.category.icon ?? '📦'} ${item.category.name}`
+            : null;
+          const meta = [qtyUnit, categoryLabel].filter(Boolean).join('  •  ');
+
+          return (
+            <Pressable
+              key={item.id || `row-${index}`}
+              onPress={() => !ingredientsReadOnly && openEdit(index)}
+              style={s.ingredientCard}
+            >
               {selectIngredients && item.id ? (
                 <Pressable
                   onPress={() => selectIngredients.onToggle(item.id!)}
@@ -209,67 +247,21 @@ export default function RecipeForm({
                 </Pressable>
               ) : null}
 
-              <AutocompleteInput
-                style={[s.flex2, ingredientsReadOnly && s.readOnly]}
-                placeholder="name"
-                value={item.name}
-                editable={!ingredientsReadOnly}
-                onChangeText={(t) => updateIngredient(index, { name: t })}
-              />
+              <View style={s.ingredientCardContent}>
+                <Text style={s.ingredientName}>{item.name}</Text>
+                {!!meta && <Text style={s.ingredientMeta}>{meta}</Text>}
+              </View>
 
-              <TextInput
-                style={[s.input, s.flex1, ingredientsReadOnly && s.readOnly]}
-                placeholder="qty"
-                keyboardType="numeric"
-                value={String(item.quantity ?? 0)}
-                editable={!ingredientsReadOnly}
-                onChangeText={(t) =>
-                  updateIngredient(index, { quantity: Number(t) || 0 })
-                }
-              />
-
-              <UnitSelect
-                value={item.unit}
-                onChange={(t) => updateIngredient(index, { unit: t })}
-                containerStyle={{ flex: 1 }}
-              />
-
-              <Pressable
-                onPress={() => removeRow(index)}
-                disabled={ingredientsReadOnly}
-                style={[s.iconBtn, ingredientsReadOnly && s.disabled]}
-              >
-                <Text style={s.icon}>✕</Text>
-              </Pressable>
-            </View>
-
-            <Pressable
-              style={[s.categoryChip, ingredientsReadOnly && s.disabled]}
-              disabled={ingredientsReadOnly}
-              onPress={() =>
-                navigation.navigate('CategoryPicker', {
-                  selectedId: item.category_id ?? undefined,
-                  onSelect: (cat: CategoryOut) =>
-                    updateIngredient(index, { category_id: cat.id, category: cat }),
-                })
-              }
-            >
-              <Text style={[s.categoryChipText, !item.category_id && s.categoryChipPlaceholder]}>
-                {item.category
-                  ? `${item.category.icon ?? '📦'} ${item.category.name}`
-                  : '+ kategoria'}
-              </Text>
+              {!ingredientsReadOnly && <Text style={s.ingredientChevron}>›</Text>}
             </Pressable>
-          </View>
-        ))}
+          );
+        })}
 
-        <Pressable
-          onPress={addRow}
-          disabled={ingredientsReadOnly}
-          style={[s.button, s.ghost, ingredientsReadOnly && s.disabled]}
-        >
-          <Text style={s.buttonText}>+ Add ingredient</Text>
-        </Pressable>
+        {!ingredientsReadOnly && (
+          <Pressable onPress={openAdd} style={s.button}>
+            <Text style={s.buttonText}>+ Add ingredient</Text>
+          </Pressable>
+        )}
       </View>
 
       {isFull && (
@@ -314,7 +306,17 @@ export default function RecipeForm({
           </Pressable>
         </>
       )}
+
+      <IngredientModal
+        visible={modalVisible}
+        value={draft}
+        onChange={setDraft}
+        onSave={handleModalSave}
+        onDelete={handleModalDelete}
+        onClose={() => setModalVisible(false)}
+        onCategoryPress={handleCategoryPress}
+        isEditing={editingIndex !== null}
+      />
     </View>
   );
 }
-

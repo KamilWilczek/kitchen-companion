@@ -5,9 +5,8 @@ import {
   Text,
   Pressable,
   Alert,
-  ScrollView,
-  KeyboardAvoidingView,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { RootStackParamList } from 'App';
@@ -52,7 +51,7 @@ export default function EditRecipeScreen() {
     try {
       setSaving(true);
       const updated = await patchRecipe(recipe.id, {
-        ingredients: ingredientsDraft,
+        ingredients: ingredientsDraft.map(({ category, id, ...rest }) => ({ ...rest, id: id || null })),
       });
       setRecipe(updated);
       setIngredientsDraft(updated.ingredients ?? []);
@@ -111,8 +110,7 @@ export default function EditRecipeScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={s.screen} behavior="padding">
-      <ScrollView contentContainerStyle={s.scrollContent}>
+    <KeyboardAwareScrollView style={s.screen} contentContainerStyle={s.scrollContent} enableOnAndroid keyboardShouldPersistTaps="handled">
         <View style={s.headerCard}>
           <Text style={s.headerTitle}>{recipe.title}</Text>
           {!!recipe.source && <Text style={s.headerSub}>{recipe.source}</Text>}
@@ -147,8 +145,6 @@ export default function EditRecipeScreen() {
         </Pressable>
 
         <View style={{ height: 220 }} />
-      </ScrollView>
-
       <View style={[s.footer, { paddingBottom: Math.max(12, insets.bottom) }]}>
         <Pressable onPress={() => openPickerFor('all')} style={s.primaryBtn}>
           <Text style={s.primaryBtnText}>Add ALL ingredients</Text>
@@ -172,6 +168,6 @@ export default function EditRecipeScreen() {
         onClose={() => setPickVisible(false)}
         onPick={onPickList}
       />
-    </KeyboardAvoidingView>
+    </KeyboardAwareScrollView>
   );
 }

@@ -78,4 +78,22 @@ export const s = StyleSheet.create({
   },
   categoryChipText: { fontSize: 13, color: colors.primary },
   categoryChipPlaceholder: { color: colors.muted },
+
+  ingredientCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    backgroundColor: colors.white,
+  },
+  ingredientCardContent: { flex: 1 },
+  ingredientName: { fontSize: 15, fontWeight: '600' },
+  ingredientMeta: { fontSize: 13, color: colors.muted, marginTop: 2 },
+  ingredientChevron: { fontSize: 20, color: colors.muted },
+
+  emptyIngredients: { color: colors.muted, fontSize: 14 },
 });

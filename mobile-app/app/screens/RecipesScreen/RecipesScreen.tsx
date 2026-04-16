@@ -135,6 +135,15 @@ const openActions = (recipe: RecipeOut) => {
                   <Text style={s.source}>{item.source}</Text>
                 )
               )}
+              {item.tags?.length > 0 && (
+                <View style={s.cardTagsRow}>
+                  {item.tags.map((tag) => (
+                    <View key={tag.id} style={s.cardTag}>
+                      <Text style={s.cardTagText}>{tag.name}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
             </Pressable>
           );
         }}

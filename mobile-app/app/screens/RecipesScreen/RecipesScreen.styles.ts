@@ -32,4 +32,14 @@ export const s = StyleSheet.create({
   source: { color: colors.secondary },
   link: { color: colors.link, textDecorationLine: 'underline' },
   emptyText: { padding: 12, color: colors.muted },
+  cardTagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 6 },
+  cardTag: {
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.ghostBg,
+  },
+  cardTagText: { fontSize: 11, color: colors.muted },
 });

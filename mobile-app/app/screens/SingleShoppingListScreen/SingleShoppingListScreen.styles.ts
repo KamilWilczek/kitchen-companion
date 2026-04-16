@@ -43,6 +43,7 @@ export const s = StyleSheet.create({
   name: { fontSize: 16, fontWeight: '600' },
   meta: { color: colors.secondary },
   source: { fontSize: 12, color: colors.muted, fontStyle: 'italic' },
+  note: { fontSize: 12, color: colors.muted, fontStyle: 'italic' },
   strike: { textDecorationLine: 'line-through', color: colors.placeholder },
   qBtns: { flexDirection: 'row', gap: 8 },
   smallBtn: {

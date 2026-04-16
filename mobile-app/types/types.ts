@@ -17,6 +17,7 @@ export interface IngredientOut {
   name: string;
   quantity: number;
   unit: string;
+  note?: string | null;
   category_id?: UUID | null;
   category?: CategoryOut | null;
 }
@@ -25,6 +26,7 @@ export interface IngredientIn {
   name: string;
   quantity: number;
   unit: string;
+  note?: string | null;
   category_id?: UUID | null;
 }
 export interface TagOut {
@@ -71,6 +73,7 @@ export interface ShoppingItemIn {
   name: string;
   quantity: number;
   unit?: string | null;
+  note?: string | null;
   recipe_id?: string | null;
   category_id?: UUID | null;
 }

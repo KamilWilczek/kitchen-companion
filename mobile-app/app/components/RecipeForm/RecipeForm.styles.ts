@@ -93,6 +93,7 @@ export const s = StyleSheet.create({
   ingredientCardContent: { flex: 1 },
   ingredientName: { fontSize: 15, fontWeight: '600' },
   ingredientMeta: { fontSize: 13, color: colors.muted, marginTop: 2 },
+  ingredientNote: { fontSize: 12, color: colors.muted, fontStyle: 'italic', marginTop: 1 },
   ingredientChevron: { fontSize: 20, color: colors.muted },
 
   emptyIngredients: { color: colors.muted, fontSize: 14 },

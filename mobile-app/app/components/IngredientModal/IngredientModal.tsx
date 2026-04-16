@@ -75,6 +75,16 @@ export default function IngredientModal({
           </View>
 
           <View>
+            <Text style={s.label}>Note (optional)</Text>
+            <TextInput
+              style={s.input}
+              placeholder="e.g. semi-dry, freshly ground"
+              value={value.note ?? ''}
+              onChangeText={(t) => onChange({ ...value, note: t || null })}
+            />
+          </View>
+
+          <View>
             <Text style={s.label}>Category</Text>
             <Pressable style={s.categoryChip} onPress={onCategoryPress}>
               <Text style={[s.categoryText, !value.category_id && s.categoryPlaceholder]}>

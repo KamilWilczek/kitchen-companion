@@ -217,6 +217,9 @@ export default function SingleShoppingListScreen() {
         <Text style={[s.meta, item.checked && s.strike]}>
           {item.quantity} {item.unit}
         </Text>
+        {!!item.note && (
+          <Text style={[s.note, item.checked && s.strike]}>{item.note}</Text>
+        )}
         {item.recipe_title && (
           <Text style={[s.source, item.checked && s.strike]}>
             przepis: {item.recipe_title}

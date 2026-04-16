@@ -30,7 +30,7 @@ export default function RecipesScreen() {
   const [actionsVisible, setActionsVisible] = useState(false);
   const [activeRecipe, setActiveRecipe] = useState<RecipeOut | null>(null);
   const [search, setSearch] = useState('');
-  const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
+  const [selectedTagIds, setSelectedTagIds] = useState<Set<string>>(new Set());
 
   // Extract unique tags from all recipes
   const allTags = useMemo(() => {
@@ -48,13 +48,13 @@ export default function RecipesScreen() {
         r.title.toLowerCase().includes(search.toLowerCase())
       );
     }
-    if (selectedTagId) {
+    if (selectedTagIds.size > 0) {
       result = result.filter((r) =>
-        r.tags?.some((t) => t.id === selectedTagId)
+        [...selectedTagIds].every((id) => r.tags?.some((t) => t.id === id))
       );
     }
     return result;
-  }, [recipes, search, selectedTagId]);
+  }, [recipes, search, selectedTagIds]);
 
 const openActions = (recipe: RecipeOut) => {
     setActiveRecipe(recipe);
@@ -90,11 +90,15 @@ const openActions = (recipe: RecipeOut) => {
           contentContainerStyle={s.tagsRowContent}
         >
           {allTags.map((tag) => {
-            const isSelected = selectedTagId === tag.id;
+            const isSelected = selectedTagIds.has(tag.id);
             return (
               <Pressable
                 key={tag.id}
-                onPress={() => setSelectedTagId(isSelected ? null : tag.id)}
+                onPress={() => setSelectedTagIds((prev) => {
+                  const next = new Set(prev);
+                  isSelected ? next.delete(tag.id) : next.add(tag.id);
+                  return next;
+                })}
                 style={[s.tag, isSelected && s.tagSelected]}
               >
                 <Text style={[s.tagText, isSelected && s.tagTextSelected]}>
@@ -149,7 +153,7 @@ const openActions = (recipe: RecipeOut) => {
         }}
         ListEmptyComponent={
           <Text style={s.emptyText}>
-            {search.trim() || selectedTagId ? 'No recipes found.' : 'No recipes yet. Tap "＋" to add one.'}
+            {search.trim() || selectedTagIds.size > 0 ? 'No recipes found.' : 'No recipes yet. Tap "＋" to add one.'}
           </Text>
         }
       />

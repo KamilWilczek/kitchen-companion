@@ -250,6 +250,7 @@ export default function RecipeForm({
               <View style={s.ingredientCardContent}>
                 <Text style={s.ingredientName}>{item.name}</Text>
                 {!!meta && <Text style={s.ingredientMeta}>{meta}</Text>}
+                {!!item.note && <Text style={s.ingredientNote}>{item.note}</Text>}
               </View>
 
               {!ingredientsReadOnly && <Text style={s.ingredientChevron}>›</Text>}

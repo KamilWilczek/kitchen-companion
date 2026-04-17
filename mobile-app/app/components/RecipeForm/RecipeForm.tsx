@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -23,10 +23,16 @@ type IngredientSelection = {
   onToggle: (id: string) => void;
 };
 
+export type RecipeFormHandle = {
+  submit: () => void;
+};
+
 type Props = {
   initial?: Partial<RecipeFormInitial>;
   submitLabel?: string;
   onSubmit?: (recipe: RecipeIn) => Promise<void> | void;
+  onCanSaveChange?: (canSave: boolean) => void;
+  hideSubmitButton?: boolean;
   selectIngredients?: IngredientSelection;
   ingredientsReadOnly?: boolean;
   mode?: 'full' | 'ingredients-only';
@@ -35,15 +41,17 @@ type Props = {
 
 const EMPTY_INGREDIENT: IngredientOut = { id: '', name: '', quantity: 0, unit: '' };
 
-export default function RecipeForm({
+const RecipeForm = forwardRef<RecipeFormHandle, Props>(function RecipeForm({
   initial,
   submitLabel = 'Save',
   onSubmit,
+  onCanSaveChange,
+  hideSubmitButton = false,
   selectIngredients,
   ingredientsReadOnly = false,
   mode = 'full',
   onIngredientsChange,
-}: Props) {
+}: Props, ref) {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { listTags } = useTagsApi();
 
@@ -97,6 +105,10 @@ export default function RecipeForm({
     if (isFull && !title.trim()) return false;
     return ingredients.every((i) => i.name.trim());
   }, [ingredients, isFull, title]);
+
+  useEffect(() => {
+    onCanSaveChange?.(canSave);
+  }, [canSave, onCanSaveChange]);
 
   const openAdd = () => {
     setDraft(EMPTY_INGREDIENT);
@@ -173,6 +185,8 @@ export default function RecipeForm({
       setSaving(false);
     }
   };
+
+  useImperativeHandle(ref, () => ({ submit: handleSubmit }));
 
   return (
     <View style={s.container}>
@@ -296,15 +310,17 @@ export default function RecipeForm({
             )}
           </View>
 
-          <Pressable
-            onPress={handleSubmit}
-            disabled={!canSave || saving}
-            style={[s.button, (!canSave || saving) && s.disabled]}
-          >
-            <Text style={s.buttonText}>
-              {saving ? 'Saving…' : submitLabel}
-            </Text>
-          </Pressable>
+          {!hideSubmitButton && (
+            <Pressable
+              onPress={handleSubmit}
+              disabled={!canSave || saving}
+              style={[s.button, (!canSave || saving) && s.disabled]}
+            >
+              <Text style={s.buttonText}>
+                {saving ? 'Saving…' : submitLabel}
+              </Text>
+            </Pressable>
+          )}
         </>
       )}
 
@@ -320,4 +336,6 @@ export default function RecipeForm({
       />
     </View>
   );
-}
+});
+
+export default RecipeForm;

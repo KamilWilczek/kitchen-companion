@@ -110,7 +110,12 @@ export default function EditRecipeScreen() {
   };
 
   return (
-    <KeyboardAwareScrollView style={s.screen} contentContainerStyle={s.scrollContent} enableOnAndroid keyboardShouldPersistTaps="handled">
+    <View style={s.screen}>
+      <KeyboardAwareScrollView
+        contentContainerStyle={[s.scrollContent, { paddingBottom: 16 }]}
+        enableOnAndroid
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={s.headerCard}>
           <Text style={s.headerTitle}>{recipe.title}</Text>
           {!!recipe.source && <Text style={s.headerSub}>{recipe.source}</Text>}
@@ -143,8 +148,8 @@ export default function EditRecipeScreen() {
             {saving ? 'Saving…' : 'Save ingredients'}
           </Text>
         </Pressable>
+      </KeyboardAwareScrollView>
 
-        <View style={{ height: 220 }} />
       <View style={[s.footer, { paddingBottom: Math.max(12, insets.bottom) }]}>
         <Pressable onPress={() => openPickerFor('all')} style={s.primaryBtn}>
           <Text style={s.primaryBtnText}>Add ALL ingredients</Text>
@@ -168,6 +173,6 @@ export default function EditRecipeScreen() {
         onClose={() => setPickVisible(false)}
         onPick={onPickList}
       />
-    </KeyboardAwareScrollView>
+    </View>
   );
 }

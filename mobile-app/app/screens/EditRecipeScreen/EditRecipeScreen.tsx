@@ -34,6 +34,7 @@ export default function EditRecipeScreen() {
   const [ingredientsDraft, setIngredientsDraft] = useState(
     recipe.ingredients ?? []
   );
+  const [formKey, setFormKey] = useState(0);
 
   const [selectedIngIds, setSelectedIngIds] = useState<Set<string>>(new Set());
   const selectedCount = selectedIngIds.size;
@@ -55,6 +56,7 @@ export default function EditRecipeScreen() {
       });
       setRecipe(updated);
       setIngredientsDraft(updated.ingredients ?? []);
+      setFormKey((k) => k + 1);
       Alert.alert('Saved', 'Ingredients updated.');
     } catch (e: any) {
       Alert.alert('Error', e?.message ?? 'Could not save ingredients.');
@@ -130,6 +132,7 @@ export default function EditRecipeScreen() {
         </View>
 
         <RecipeForm
+          key={formKey}
           mode="ingredients-only"
           initial={recipe}
           onIngredientsChange={setIngredientsDraft}

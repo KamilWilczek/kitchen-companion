@@ -66,6 +66,7 @@ def add_recipe(
             name=ing.name,
             quantity=ing.quantity,
             unit=ing.unit,
+            note=ing.note,
             category_id=resolve_category_id(db, ing.category_id, current_user.id),
         )
         for ing in recipe_in.ingredients
@@ -103,6 +104,7 @@ def update_recipe(
             name=ing.name,
             quantity=ing.quantity,
             unit=ing.unit,
+            note=ing.note,
             category_id=resolve_category_id(db, ing.category_id, current_user.id),
         )
         for ing in recipe_in.ingredients
@@ -143,7 +145,8 @@ def patch_recipe(
             Ingredient(
                 name=ing.name,
                 quantity=ing.quantity,
-                unit=Unit(ing.unit) if ing.unit else None,
+                unit=ing.unit,
+                note=ing.note,
                 category_id=resolve_category_id(db, ing.category_id, current_user.id),
             )
             for ing in patch.ingredients

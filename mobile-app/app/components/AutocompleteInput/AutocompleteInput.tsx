@@ -36,12 +36,16 @@ export function AutocompleteInput({
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [inputHeight, setInputHeight] = useState(38);
   const [isFocused, setIsFocused] = useState(false);
+  const lastSelectedRef = useRef<string | null>(null);
 
   const debouncedValue = useDebounce(value, debounceMs);
 
   useEffect(() => {
     if (editable === false || !isFocused) {
       setSuggestions([]);
+      return;
+    }
+    if (lastSelectedRef.current === debouncedValue) {
       return;
     }
     if (debouncedValue.length >= 2) {
@@ -56,6 +60,7 @@ export function AutocompleteInput({
 
   const handleSelect = useCallback(
     (suggestion: string) => {
+      lastSelectedRef.current = suggestion;
       onChangeText(suggestion);
       setSuggestions([]);
     },

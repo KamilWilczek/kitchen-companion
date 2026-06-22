@@ -1,13 +1,17 @@
 export const colors = {
-  // Neutrals
-  primary:     '#111827',
-  secondary:   '#374151',
-  muted:       '#6b7280',
-  placeholder: '#9ca3af',
-  border:      '#d1d5db',
-  borderLight: '#e5e7eb',
-  ghostBg:     '#f3f4f6',
-  screenBg:    '#F9FAFB',
+  // Brand
+  primary:      '#F97316',   // orange-500 — buttons, active states, accents
+  primaryDark:  '#EA580C',   // orange-600 — pressed state
+  primaryLight: '#FFF7ED',   // orange-50  — selected chip bg, subtle tints
+
+  // Text / neutrals — warm stone scale (not cold blue-gray)
+  secondary:   '#44403C',   // stone-700
+  muted:       '#78716C',   // stone-500
+  placeholder: '#A8A29E',   // stone-400
+  border:      '#D6D3D1',   // stone-300
+  borderLight: '#E7E5E4',   // stone-200
+  ghostBg:     '#F5F5F4',   // stone-100
+  screenBg:    '#FFFBF7',   // warm cream
   white:       '#ffffff',
 
   // Semantic
@@ -18,5 +22,5 @@ export const colors = {
   link:        '#2563eb',
 
   // Overlay
-  overlay: 'rgba(0,0,0,0.3)',
+  overlay: 'rgba(0,0,0,0.45)',
 } as const;

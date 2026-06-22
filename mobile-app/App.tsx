@@ -38,55 +38,36 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 function HomeScreen({ navigation }: NativeStackScreenProps<RootStackParamList, 'Home'>) {
   const { plan } = useAuth();
 
+  const menuCard = {
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: colors.white,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+  };
+
   return (
-    <View style={{ flex: 1, padding: 24, justifyContent: 'center', gap: 16 }}>
-      <Text style={{ fontSize: 24, fontWeight: '600', marginBottom: 24 }}>
-        What do you want to work on?
+    <View style={{ flex: 1, padding: 20, justifyContent: 'center', gap: 12, backgroundColor: colors.screenBg }}>
+      <Text style={{ fontSize: 26, fontWeight: '800', marginBottom: 16, color: '#1C1917', letterSpacing: -0.5 }}>
+        Kitchen Companion
       </Text>
 
-      <Pressable
-        onPress={() => navigation.navigate('Recipes')}
-        style={{
-          padding: 16,
-          borderRadius: 12,
-          borderWidth: 1,
-          borderColor: colors.borderLight,
-        }}
-      >
-        <Text style={{ fontSize: 18, fontWeight: '500' }}>Recipes</Text>
-        <Text style={{ color: colors.muted, marginTop: 4 }}>
-          Browse and edit your recipes.
-        </Text>
+      <Pressable onPress={() => navigation.navigate('Recipes')} style={menuCard}>
+        <Text style={{ fontSize: 17, fontWeight: '700', color: '#1C1917' }}>Recipes</Text>
+        <Text style={{ color: colors.muted, marginTop: 3 }}>Browse and edit your recipes.</Text>
       </Pressable>
 
-      <Pressable
-        onPress={() => navigation.navigate('ShoppingLists')}
-        style={{
-          padding: 16,
-          borderRadius: 12,
-          borderWidth: 1,
-          borderColor: colors.borderLight,
-        }}
-      >
-        <Text style={{ fontSize: 18, fontWeight: '500' }}>Shopping lists</Text>
-        <Text style={{ color: colors.muted, marginTop: 4 }}>
-          Manage your multiple lists for different stores or weeks.
-        </Text>
+      <Pressable onPress={() => navigation.navigate('ShoppingLists')} style={menuCard}>
+        <Text style={{ fontSize: 17, fontWeight: '700', color: '#1C1917' }}>Shopping lists</Text>
+        <Text style={{ color: colors.muted, marginTop: 3 }}>Manage your lists for different stores or weeks.</Text>
       </Pressable>
 
-      <Pressable
-        onPress={() => navigation.navigate('Tags')}
-        style={{
-          padding: 16,
-          borderRadius: 12,
-          borderWidth: 1,
-          borderColor: colors.borderLight,
-        }}
-      >
-        <Text style={{ fontSize: 18, fontWeight: '500' }}>Tags</Text>
-        <Text style={{ color: colors.muted, marginTop: 4 }}>
-          Organize recipes with tags.
-        </Text>
+      <Pressable onPress={() => navigation.navigate('Tags')} style={menuCard}>
+        <Text style={{ fontSize: 17, fontWeight: '700', color: '#1C1917' }}>Tags</Text>
+        <Text style={{ color: colors.muted, marginTop: 3 }}>Organize recipes with tags.</Text>
       </Pressable>
 
       <Pressable
@@ -97,35 +78,17 @@ function HomeScreen({ navigation }: NativeStackScreenProps<RootStackParamList, '
           }
           navigation.navigate('MealPlanner');
         }}
-        style={{
-          padding: 16,
-          borderRadius: 12,
-          borderWidth: 1,
-          borderColor: colors.borderLight,
-          opacity: plan === 'free' ? 0.5 : 1,
-        }}
+        style={[menuCard, plan === 'free' && { opacity: 0.5 }]}
       >
-        <Text style={{ fontSize: 18, fontWeight: '500' }}>
+        <Text style={{ fontSize: 17, fontWeight: '700', color: '#1C1917' }}>
           Meal planner {plan === 'free' ? '(Premium)' : ''}
         </Text>
-        <Text style={{ color: colors.muted, marginTop: 4 }}>
-          Plan your weekly meals.
-        </Text>
+        <Text style={{ color: colors.muted, marginTop: 3 }}>Plan your weekly meals.</Text>
       </Pressable>
 
-      <Pressable
-        onPress={() => navigation.navigate('Account')}
-        style={{
-          padding: 16,
-          borderRadius: 12,
-          borderWidth: 1,
-          borderColor: colors.borderLight,
-        }}
-      >
-        <Text style={{ fontSize: 18, fontWeight: '500' }}>Account</Text>
-        <Text style={{ color: colors.muted, marginTop: 4 }}>
-          Manage your plan, password, and settings.
-        </Text>
+      <Pressable onPress={() => navigation.navigate('Account')} style={menuCard}>
+        <Text style={{ fontSize: 17, fontWeight: '700', color: '#1C1917' }}>Account</Text>
+        <Text style={{ color: colors.muted, marginTop: 3 }}>Manage your plan, password, and settings.</Text>
       </Pressable>
     </View>
   );
@@ -143,7 +106,14 @@ function RootNavigator() {
   }
 
   return (
-    <Stack.Navigator>
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: colors.white },
+        headerTintColor: colors.primary,
+        headerTitleStyle: { color: '#1C1917', fontWeight: '700' },
+        contentStyle: { backgroundColor: colors.screenBg },
+      }}
+    >
       {token == null ? (
         <Stack.Screen
           name="Auth"

@@ -6,7 +6,7 @@ export const s = StyleSheet.create({
   input: { borderWidth: 1, borderColor: colors.border, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 8 },
   button: { backgroundColor: colors.primary, paddingHorizontal: 16, justifyContent: 'center', borderRadius: 8 },
   buttonText: { color: colors.white, fontWeight: '600' },
-  tagRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  tagRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.borderLight },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   smallBtn: { backgroundColor: colors.primary, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
   smallBtnText: { color: colors.white },

@@ -30,3 +30,13 @@ class Token(BaseModel):
 
 class RefreshRequest(BaseModel):
     refresh_token: str
+
+
+class RequestResetRequest(BaseModel):
+    email: EmailStr
+
+
+class ConfirmResetRequest(BaseModel):
+    email: EmailStr
+    code: str
+    new_password: str = Field(min_length=8, max_length=128)

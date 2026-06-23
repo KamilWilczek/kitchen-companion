@@ -9,18 +9,21 @@ export const s = StyleSheet.create({
     backgroundColor: colors.screenBg,
   },
   title: {
-    fontSize: 30,
+    fontSize: 26,
     fontWeight: '800',
-    textAlign: 'center',
     color: '#1C1917',
     letterSpacing: -0.5,
+    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: colors.muted,
-    textAlign: 'center',
-    marginBottom: 32,
-    marginTop: 6,
+    lineHeight: 22,
+    marginBottom: 28,
+  },
+  email: {
+    color: '#1C1917',
+    fontWeight: '600',
   },
   input: {
     borderWidth: 1.5,
@@ -31,6 +34,13 @@ export const s = StyleSheet.create({
     marginBottom: 12,
     backgroundColor: colors.white,
     fontSize: 16,
+  },
+  codeInput: {
+    fontSize: 28,
+    fontWeight: '700',
+    letterSpacing: 8,
+    textAlign: 'center',
+    paddingVertical: 16,
   },
   button: {
     backgroundColor: colors.primary,
@@ -53,27 +63,5 @@ export const s = StyleSheet.create({
     color: colors.dangerDark,
     marginBottom: 8,
     fontSize: 14,
-  },
-  success: {
-    color: '#16a34a',
-    marginBottom: 8,
-    fontSize: 14,
-  },
-  forgotLink: {
-    marginTop: 14,
-    alignSelf: 'center',
-  },
-  forgotLinkText: {
-    color: colors.muted,
-    fontSize: 14,
-  },
-  switchLink: {
-    marginTop: 12,
-  },
-  switchLinkText: {
-    color: colors.primary,
-    textAlign: 'center',
-    fontSize: 14,
-    fontWeight: '500',
   },
 });

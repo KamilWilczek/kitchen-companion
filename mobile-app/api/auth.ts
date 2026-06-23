@@ -66,3 +66,31 @@ export async function refreshTokenRequest(
 
   return res.json();
 }
+
+export async function requestPasswordReset(email: string): Promise<void> {
+  const res = await fetch(`${API_URL}/auth/request-reset`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+
+  if (!res.ok) {
+    throw new Error(await extractErrorMessage(res, 'Request failed'));
+  }
+}
+
+export async function confirmPasswordReset(
+  email: string,
+  code: string,
+  newPassword: string,
+): Promise<void> {
+  const res = await fetch(`${API_URL}/auth/confirm-reset`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, code, new_password: newPassword }),
+  });
+
+  if (!res.ok) {
+    throw new Error(await extractErrorMessage(res, 'Invalid or expired code'));
+  }
+}

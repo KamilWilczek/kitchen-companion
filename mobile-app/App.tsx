@@ -4,6 +4,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Alert, Pressable, View, Text, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import RequestResetScreen from '@app/screens/RequestResetScreen/RequestResetScreen';
+import ConfirmResetScreen from '@app/screens/ConfirmResetScreen/ConfirmResetScreen';
 import RecipesScreen from '@app/screens/RecipesScreen/RecipesScreen';
 import NewRecipeScreen from '@app/screens/NewRecipeScreen/NewRecipeScreen';
 import EditRecipeScreen from '@app/screens/EditRecipeScreen/EditRecipeScreen';
@@ -20,7 +22,9 @@ import { colors } from '@app/styles/colors';
 import type { CategoryOut } from 'types/types';
 
 export type RootStackParamList = {
-  Auth: undefined;
+  Auth: { resetSuccess?: boolean } | undefined;
+  RequestReset: undefined;
+  ConfirmReset: { email: string };
   Home: undefined;
   Account: undefined;
   Recipes: undefined;
@@ -115,11 +119,11 @@ function RootNavigator() {
       }}
     >
       {token == null ? (
-        <Stack.Screen
-          name="Auth"
-          component={AuthScreen}
-          options={{ headerShown: false }}
-        />
+        <>
+          <Stack.Screen name="Auth" component={AuthScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="RequestReset" component={RequestResetScreen} options={{ title: 'Reset Password', headerBackTitle: 'Back' }} />
+          <Stack.Screen name="ConfirmReset" component={ConfirmResetScreen} options={{ title: 'Enter Code', headerBackTitle: 'Back' }} />
+        </>
       ) : (
         <>
           <Stack.Screen

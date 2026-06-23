@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str = "*"
     RATE_LIMIT_ENABLED: bool = True
 
+    RESEND_API_KEY: str = ""
+    RESET_CODE_FROM_EMAIL: str = "noreply@yourdomain.com"
+
     @property
     def is_dev(self) -> bool:
         return self.ENVIRONMENT == "dev"

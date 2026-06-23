@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.core.db import SessionLocal
 from app.core.predefined_categories import seed_predefined_categories
-from app.routers import account, auth, categories, recipe, shopping_lists, suggestions, tags
+from app.routers import account, auth, categories, meal_plan, recipe, shopping_lists, suggestions, tags
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
@@ -64,3 +64,4 @@ app.include_router(shopping_lists.router, prefix="/shopping-lists", tags=["shopp
 app.include_router(tags.router, prefix="/tags", tags=["tags"])
 app.include_router(account.router, prefix="/account", tags=["account"])
 app.include_router(suggestions.router, prefix="/suggestions", tags=["suggestions"])
+app.include_router(meal_plan.router, prefix="/meal-plan", tags=["meal-plan"])

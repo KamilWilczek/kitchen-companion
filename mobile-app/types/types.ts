@@ -78,6 +78,19 @@ export interface ShoppingItemIn {
   category_id?: UUID | null;
 }
 
+// ---------- Meal Planner ----------
+
+export type MealSlot = 'breakfast' | 'lunch' | 'dinner' | 'supper';
+
+export interface MealPlanEntry {
+  id: UUID;
+  date: string;       // YYYY-MM-DD
+  meal_slot: MealSlot;
+  recipe: { id: UUID; title: string };
+}
+
+// ---------- Shopping Items ----------
+
 export interface ShoppingItemOut extends ShoppingItemIn {
   id: UUID;
   checked: boolean;

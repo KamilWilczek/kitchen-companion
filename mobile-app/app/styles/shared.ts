@@ -16,6 +16,7 @@ export const shared = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: colors.white,
     fontSize: 16,
+    color: '#1C1917',
   },
 
   card: {

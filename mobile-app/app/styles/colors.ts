@@ -5,6 +5,7 @@ export const colors = {
   primaryLight: '#FFF7ED',   // orange-50  — selected chip bg, subtle tints
 
   // Text / neutrals — warm stone scale (not cold blue-gray)
+  ink:         '#1C1917',   // stone-900 — main text, always use for inputs
   secondary:   '#44403C',   // stone-700
   muted:       '#78716C',   // stone-500
   placeholder: '#A8A29E',   // stone-400

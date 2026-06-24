@@ -9,7 +9,10 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "API_URL": "https://kitchen-companion-production-3a7b.up.railway.app"
+      }
     },
     "production": {
       "autoIncrement": true
